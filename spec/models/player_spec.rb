@@ -65,4 +65,58 @@ RSpec.describe Player, type: :model do
       expect(player.errors[:lore_progression]).to include('must be greater than or equal to 0')
     end
   end
+
+  describe "Associations" do
+    let(:player) { create(:player) }
+    let(:card1) { create(:card) }
+    let(:card2) { create(:card, effect: 'Exhumed')}
+
+    it "has many cards through collections" do
+      player.cards << [card1, card2]
+
+      expect(player.cards).to include(card1, card2)
+    end
+
+    it "deletes associated collection when destroyed" do
+      collection = CardCollection.create!(player: player, card: card1)
+      
+      expect(CardCollection.count).to eq(1)
+
+      player.force_delete = true
+      player.destroy!
+
+      expect(Player.count).to eq(0)
+      expect(CardCollection.count).to eq(0)
+    end
+  end
+
+  describe "#owns_card?" do
+    let(:player) { create(:player) }
+    let(:card) { create(:card) }
+
+    it "returns true if the player owns the card" do
+      player.cards << card
+      expect(player.owns_card?(card.id)).to be true
+    end
+
+    it "returns false if the player does not own the card" do
+      expect(player.owns_card?(card.id)).to be false
+    end
+  end
+
+  describe "Scopes" do
+    let!(:guest) { create(:player, username: nil, is_guest: true) }
+    let!(:player) { create(:player) }
+
+    it '.returns only guest players' do
+      expect(Player.by_guests(true)).to include(guest)
+      expect(Player.by_guests(true)).not_to include(player)
+    end
+
+
+    it 'returns only non-guest players' do
+      expect(Player.by_guests(false)).to include(player)
+      expect(Player.by_guests(false)).not_to include(guest)
+    end
+  end
 end

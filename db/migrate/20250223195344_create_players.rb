@@ -4,6 +4,7 @@ class CreatePlayers < ActiveRecord::Migration[7.2]
       t.string :username, null: false
       t.string :password_digest
       t.boolean :is_guest, default: false, null: false
+      t.boolean :tutorial_finished, default: false, null: false
       t.integer :blood_pool, default: 5000, null: false
       t.integer :max_daimon_health_reached, default: 0, null: false
       t.integer :max_round_reached, default: 0, null: false
