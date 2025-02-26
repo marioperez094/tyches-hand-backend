@@ -1,5 +1,5 @@
 #Initialize all player associations
-Class PlayerInitializer
+class PlayerInitializer
   def initialize(player)
     @player = player
   end
