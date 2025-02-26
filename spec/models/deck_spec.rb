@@ -1,8 +1,20 @@
 require 'rails_helper'
 
 RSpec.describe Deck, type: :model do
+  let!(:standard_cards) do
+    suits = Card::SUITS
+    ranks = Card::RANKS
+    suits.product(ranks).map do |suit, rank|
+      create(:card,
+        effect: 'Standard',
+        suit: suit,
+        rank: rank
+      )
+    end
+  end
+
   let(:player) { create(:player) }
-  let!(:deck) { create(:deck, player: player) }
+  let!(:deck) { player.deck }
 
   describe "Validations" do
     it "is valid with a name and a unique player_id" do
@@ -44,7 +56,9 @@ RSpec.describe Deck, type: :model do
       card = create(:card)
       EquippedCard.create(deck: deck, card: card)
 
-      expect(EquippedCard.count).to eq(1)
+      expect(EquippedCard.count).to eq(53)
+
+      expect(deck).to be_invalid 
       deck.destroy
       expect(EquippedCard.count).to eq(0)
     end
@@ -53,27 +67,6 @@ RSpec.describe Deck, type: :model do
   describe "Callbacks" do
     it "sets a default name on creation if none is provided" do
       expect(deck.name).to eq("#{player.username}'s Deck")
-    end
-  end
-
-  describe "Methods" do    
-    let!(:standard_cards) { Card.by_effect("Standard") }
-
-    it "populates the deck with 52 standard cards if empty" do
-      deck.populate_with_standard_cards
-      deck.reload
-      expect(deck.cards.count).to eq(52)
-    end
-
-    it "does not overwrite existing cards when populating" do
-      extra_card = Card.first
-      deck.cards << extra_card
-
-      deck.populate_with_standard_cards
-      deck.reload
-
-      expect(deck.cards).to include(extra_card)
-      expect(deck.cards.count).to eq(53)
     end
   end
 
