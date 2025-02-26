@@ -8,6 +8,7 @@ Rails.application.routes.draw do
         post 'convert_to_registered', on: :collection, to: 'players#convert_to_registered'
         post 'update_password', on: :collection, to: 'players#update_password'
         delete 'delete', on: :collection, to: 'players#destroy'
+        get 'authenticated', on: :collection, to: 'players#authenticated'
         get 'show', on: :collection, to: 'players#show'
         get 'leaderboard/rounds', on: :collection, to: 'players#index_leaderboard_by_rounds'
       end

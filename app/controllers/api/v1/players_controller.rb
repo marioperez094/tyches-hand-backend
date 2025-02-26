@@ -32,9 +32,9 @@ class Api::V1::PlayersController < ApplicationController
   end
 
   def logout
-    if @current_player.is_guest
+    if current_player.is_guest
       #Session expiration or logging out deletes 
-      @current_player.destroy!
+      current_player.destroy!
       render json: { success: true }, 
       status: :ok
     else
@@ -43,9 +43,13 @@ class Api::V1::PlayersController < ApplicationController
     end
   end
 
+  def authenticated
+    render json: { authenticated: true }
+  end
+
   def convert_to_registered
     return render json: { error: 'This account is already registered.' },
-    status: :forbidden unless @current_player.is_guest
+    status: :forbidden unless current_player.is_guest
 
     if params[:player][:password].length < 6
       return render json: { error: 'Password must be at least 6 characters long.' },
@@ -53,22 +57,22 @@ class Api::V1::PlayersController < ApplicationController
     end
 
     begin
-      @current_player.update!(username: params[:player][:username], password: params[:player][:password], is_guest: false)
+      current_player.update!(username: params[:player][:username], password: params[:player][:password], is_guest: false)
       
       render json: { success: true }, 
       status: :ok
     rescue ActiveRecord::RecordInvalid  => e
-      render json: { error: @current_player.errors.full_messages },
+      render json: { error: current_player.errors.full_messages },
       status: :bad_request
     end
   end
 
   def update_password
     return render json: { error: "Invalid username or password." },
-    status: :unauthorized unless @current_player&.authenticate(params[:player][:password])
+    status: :unauthorized unless current_player&.authenticate(params[:player][:password])
 
     begin
-      @current_player.update!(password: params[:player][:new_password])
+      current_player.update!(password: params[:player][:new_password])
       render json: { success: true },
       status: :ok
     rescue ArgumentError => e
@@ -79,11 +83,11 @@ class Api::V1::PlayersController < ApplicationController
 
   def destroy
     return render json: { error: "Invalid username or password." }, 
-    status: :unauthorized unless @current_player&.authenticate(params[:player][:password])
+    status: :unauthorized unless current_player&.authenticate(params[:player][:password])
 
-    @current_player.force_delete = true #Allows for registered player deletion 
+    current_player.force_delete = true #Allows for registered player deletion 
     
-    if @current_player&.destroy
+    if current_player&.destroy
       render json: { success: true }
     else
       render json: { success: false }
@@ -91,7 +95,7 @@ class Api::V1::PlayersController < ApplicationController
   end
 
   def show
-    @player = @current_player
+    @player = current_player
     render 'api/players/show'
   end
 
