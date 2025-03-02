@@ -2,15 +2,15 @@ class Api::V1::PlayersController < ApplicationController
   skip_before_action :authenticate_player!, only: [:create, :login]
 
   def create
-    player = Player.new(player_params)
+    @player = Player.new(player_params)
 
-    if player.save
-      token = JsonWebToken.encode(player_id: player.id)
+    if @player.save
+      token = JsonWebToken.encode(player_id: @player.id)
       render json: { success: true, token: token }, 
       status: :ok
     else
-      render json: { errors: player.errors.full_messages }, 
-      status: :unprocessable_entity
+      render json: { error: @player.errors }, 
+      status: :bad_request
     end
   end
 
