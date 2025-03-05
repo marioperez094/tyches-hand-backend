@@ -2,6 +2,12 @@ class Api::V1::PlayersController < ApplicationController
   skip_before_action :authenticate_player!, only: [:create, :login]
 
   def create
+    # Verify reCAPTCHA token from front end
+    unless RecaptchaV3Verifier.verify(params[:recaptcha_token], 0.5)
+      puts params[:recaptcha_token]
+      return render json: { error: "reCAPTCHA verification failed" }, status: :unauthorized
+    end
+
     @player = Player.new(player_params)
 
     if @player.save

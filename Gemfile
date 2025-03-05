@@ -53,3 +53,7 @@ gem "factory_bot_rails", "~> 6.4"
 gem "rack-cors", "~> 2.0"
 
 gem "jwt", "~> 2.10"
+
+gem "rack-attack", "~> 6.7"
+
+gem "recaptcha", "~> 5.19"
