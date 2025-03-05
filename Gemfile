@@ -42,7 +42,7 @@ end
 
 group :production do
   # Use pg as the database in production environment
-  gem 'pg', '~> 1.4.3'
+  gem 'pg', '~> 1.5.9'
 end
 
 
