@@ -153,7 +153,7 @@ GEM
     parser (3.3.7.1)
       ast (~> 2.4.1)
       racc
-    pg (1.4.6)
+    pg (1.5.9)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -298,7 +298,7 @@ DEPENDENCIES
   factory_bot_rails (~> 6.4)
   jbuilder
   jwt (~> 2.10)
-  pg (~> 1.4.3)
+  pg (~> 1.5.9)
   puma (>= 5.0)
   rack-attack (~> 6.7)
   rack-cors (~> 2.0)
