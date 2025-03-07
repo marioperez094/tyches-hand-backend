@@ -1,6 +1,7 @@
 class Player < ApplicationRecord
   #Associations
   has_one :deck, dependent: :destroy
+  has_many :equipped_cards, through: :deck, source: :cards
 
   has_many :card_collections, dependent: :destroy
   has_many :cards, through: :card_collections

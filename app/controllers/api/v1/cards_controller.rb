@@ -2,7 +2,7 @@ class Api::V1::CardsController < ApplicationController
   before_action :set_card
 
   def show
-    unless @current_player.owns_card?(@card.id)
+    unless current_player.owns_card?(@card.id)
       return render json: { error: 'Player does not have this card.' },
       status: :unauthorized
     end

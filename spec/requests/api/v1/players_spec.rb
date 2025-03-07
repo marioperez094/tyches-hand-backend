@@ -16,6 +16,11 @@ RSpec.describe 'Api::V1::Players', type: :request do
 
 
   describe 'POST #create' do
+
+    before do
+      allow(RecaptchaV3Verifier).to receive(:verify).and_return(true) # Mock reCAPTCHA success
+    end
+
     context 'with valid parameters' do
       it 'creates a new player and returns a token' do
         expect {
@@ -33,8 +38,8 @@ RSpec.describe 'Api::V1::Players', type: :request do
         expect {
           post '/api/v1/players', params: { player: invalid_attributes }
         }.not_to change(Player, :count)
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(json_response).to have_key('errors')
+        expect(response).to have_http_status(:bad_request)
+        expect(json_response).to have_key('error')
       end
     end
   end
@@ -68,7 +73,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
     context 'when the player is a guest' do
       it 'destroys the guest player and returns success' do
         expect {
-          post '/api/v1/players/logout', headers: auth_header_for(guest)
+          delete '/api/v1/players/logout', headers: auth_header_for(guest)
         }.to change(Player, :count).by(-1)
         expect(response).to have_http_status(:ok)
         expect(json_response['success']).to be_truthy
@@ -78,17 +83,17 @@ RSpec.describe 'Api::V1::Players', type: :request do
     context 'when the player is not a guest' do
       it 'returns a logged out message without deleting the player' do
         expect {
-          post '/api/v1/players/logout', headers: auth_header_for(player)
+          delete '/api/v1/players/logout', headers: auth_header_for(player)
         }.not_to change(Player, :count)
         expect(response).to have_http_status(:ok)
-        expect(json_response['message']).to eq('Logged out.')
+        expect(json_response['success']).to eq(true)
       end
     end
   end
 
   context 'when there is no account' do
     it 'returns an unauthorized status' do
-      post '/api/v1/players/convert_to_registered',
+      put '/api/v1/players/convert_to_registered',
         params: { player: { username: 'NewName', password: 'newpassword' }}
   
       expect(response).to have_http_status(:unauthorized) # FIX: should be unauthorized
@@ -99,7 +104,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
   describe 'POST #covert_to_registered' do
     context 'when the account is already registered' do
       it 'returns a forbidden status' do
-        post '/api/v1/players/convert_to_registered', 
+        put '/api/v1/players/convert_to_registered', 
           params: { player: { username: 'NewName', password: 'newpassword' } },
           headers: auth_header_for(player)
           
@@ -110,7 +115,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
 
     context 'when the password is too short' do
       it 'returns a bad request status' do
-        post '/api/v1/players/convert_to_registered', 
+        put '/api/v1/players/convert_to_registered', 
              params: { player: { username: 'NewName', password: '123' } },
              headers: auth_header_for(guest)
 
@@ -122,7 +127,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
 
     context 'when the conversion parameters are valid' do
       it 'updates the player to a registered account' do
-        post '/api/v1/players/convert_to_registered', 
+        put '/api/v1/players/convert_to_registered', 
              params: { player: { username: 'Newuser', password: 'securepassword' } },
              headers: auth_header_for(guest)
 
@@ -139,7 +144,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
 
     context 'when the update fails due to invalid parameters' do
       it 'returns a bad request status' do
-        post '/api/v1/players/convert_to_registered', 
+        put '/api/v1/players/convert_to_registered', 
              params: { player: { username: '', password: 'securepassword' } },
              headers: auth_header_for(guest)
 
@@ -152,7 +157,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
 
   describe 'POST #update_password' do
     it 'updates player password successfully' do
-      post '/api/v1/players/update_password',
+      put '/api/v1/players/update_password',
         params: { player: { password: 'password123', new_password: 'newsecurepass' }},
         headers: auth_header_for(player)
       expect(response).to have_http_status(:ok)
@@ -162,7 +167,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
     end
 
     it 'returns an error if the current password is incorrect' do
-      post '/api/v1/players/update_password',
+      put '/api/v1/players/update_password',
         params: { player: { password: 'wrongpassword', new_password: 'newsecurepass' }},
         headers: auth_header_for(player)
       expect(response).to have_http_status(:unauthorized)

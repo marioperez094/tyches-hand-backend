@@ -44,7 +44,7 @@ class Api::V1::PlayersController < ApplicationController
       render json: { success: true }, 
       status: :ok
     else
-      render json: { message: 'Logged out.' }, 
+      render json: { success: true }, 
       status: :ok
     end
   end
@@ -101,6 +101,10 @@ class Api::V1::PlayersController < ApplicationController
   end
 
   def show
+    @include_deck_stats = params[:deck_stats] == 'true'
+    @include_deck_cards = params[:deck_cards] == 'true'
+    @include_collection_cards = params[:collection_cards] == 'true'
+
     @player = current_player
     render 'api/players/show'
   end
