@@ -10,7 +10,7 @@ class Card < ApplicationRecord
   before_validation :set_card_name
   before_validation :set_effect_details, if: -> { effect.present? }
 
-  # Constants
+  #Constants
   RANKS           = %w[2 3 4 5 6 7 8 9 10 Jack Queen King Ace].freeze
   SUITS           = %w[Hearts Diamonds Clubs Spades].freeze
   EFFECTS         = %w[Exhumed Charred Fleshwoven Blessed Bloodstained Standard].freeze
