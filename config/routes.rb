@@ -21,6 +21,9 @@ Rails.application.routes.draw do
         put 'rename', on: :collection, to: 'decks#rename_deck'
         put 'update_cards', on: :collection, to: 'decks#update_cards'
       end
+
+      #Token Routes
+      resources :tokens, only: [:show]
     end
   end
 end

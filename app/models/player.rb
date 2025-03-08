@@ -5,6 +5,9 @@ class Player < ApplicationRecord
 
   has_many :card_collections, dependent: :destroy
   has_many :cards, through: :card_collections
+
+  has_many :token_collections, dependent: :destroy
+  has_many :tokens, through: :token_collections
   
   #Callbacks 
   before_validation :assign_guest_username, if: :guest?
@@ -31,6 +34,10 @@ class Player < ApplicationRecord
 
   def owns_card?(card_id)
     cards.exists?(card_id)
+  end
+
+  def owns_token?(token_id)
+    tokens.exists?(token_id)
   end
 
   private

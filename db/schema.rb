@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_02_25_022155) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_08_045801) do
   create_table "card_collections", force: :cascade do |t|
     t.integer "player_id"
     t.integer "card_id"
@@ -71,9 +71,38 @@ ActiveRecord::Schema[7.2].define(version: 2025_02_25_022155) do
     t.index ["username"], name: "index_players_on_username", unique: true
   end
 
+  create_table "token_collections", force: :cascade do |t|
+    t.integer "player_id"
+    t.integer "token_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["player_id", "token_id"], name: "index_token_collections_on_player_id_and_token_id", unique: true
+    t.index ["player_id"], name: "index_token_collections_on_player_id"
+    t.index ["token_id"], name: "index_token_collections_on_token_id"
+  end
+
+  create_table "tokens", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "rune", null: false
+    t.text "description", null: false
+    t.string "effect_type", null: false
+    t.text "inscribed_effect", null: false
+    t.text "oathbound_effect", null: false
+    t.text "offering_effect", null: false
+    t.boolean "lore_token", default: false, null: false
+    t.integer "sequence_order"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["effect_type"], name: "index_tokens_on_effect_type"
+    t.index ["lore_token"], name: "index_tokens_on_lore_token"
+    t.index ["sequence_order"], name: "index_tokens_on_sequence_order", unique: true, where: "lore_token = true"
+  end
+
   add_foreign_key "card_collections", "cards", on_delete: :cascade
   add_foreign_key "card_collections", "players", on_delete: :cascade
   add_foreign_key "decks", "players", on_delete: :cascade
   add_foreign_key "equipped_cards", "cards", on_delete: :cascade
   add_foreign_key "equipped_cards", "decks", on_delete: :cascade
+  add_foreign_key "token_collections", "players", on_delete: :cascade
+  add_foreign_key "token_collections", "tokens", on_delete: :cascade
 end

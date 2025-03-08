@@ -2,7 +2,6 @@ class Api::V1::DecksController < ApplicationController
   before_action :set_deck
   
   def rename_deck
-    puts "#{ params[:deck][:name] }"
     begin
       @deck.update!(name: params[:deck][:name])
 
