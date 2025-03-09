@@ -7,6 +7,7 @@ class PlayerInitializer
   def call
     ActiveRecord::Base.transaction do
       initialize_deck
+      initialize_slots
     end
   end
 
@@ -22,5 +23,11 @@ class PlayerInitializer
     
     deck.cards << standard_cards
     @player.cards << standard_cards
+  end
+
+  def initialize_slots
+    @player.slots.create!(slot_type: "Inscribed")
+    2.times { @player.slots.create!(slot_type: "Oathbound") }
+    3.times { @player.slots.create!(slot_type:"Offering") }
   end
 end

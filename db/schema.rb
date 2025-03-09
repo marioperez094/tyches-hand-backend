@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_03_08_045801) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_09_061254) do
   create_table "card_collections", force: :cascade do |t|
     t.integer "player_id"
     t.integer "card_id"
@@ -54,6 +54,16 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_08_045801) do
     t.index ["deck_id"], name: "index_equipped_cards_on_deck_id"
   end
 
+  create_table "equipped_tokens", force: :cascade do |t|
+    t.integer "token_id"
+    t.integer "slot_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slot_id"], name: "index_equipped_tokens_on_slot_id"
+    t.index ["token_id", "slot_id"], name: "index_equipped_tokens_on_token_id_and_slot_id", unique: true
+    t.index ["token_id"], name: "index_equipped_tokens_on_token_id"
+  end
+
   create_table "players", force: :cascade do |t|
     t.string "username", null: false
     t.string "password_digest"
@@ -69,6 +79,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_08_045801) do
     t.index ["max_daimon_health_reached"], name: "index_players_on_max_daimon_health_reached"
     t.index ["max_round_reached"], name: "index_players_on_max_round_reached"
     t.index ["username"], name: "index_players_on_username", unique: true
+  end
+
+  create_table "slots", force: :cascade do |t|
+    t.string "slot_type", null: false
+    t.integer "player_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["player_id"], name: "index_slots_on_player_id"
   end
 
   create_table "token_collections", force: :cascade do |t|
@@ -103,6 +121,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_08_045801) do
   add_foreign_key "decks", "players", on_delete: :cascade
   add_foreign_key "equipped_cards", "cards", on_delete: :cascade
   add_foreign_key "equipped_cards", "decks", on_delete: :cascade
+  add_foreign_key "equipped_tokens", "slots", on_delete: :cascade
+  add_foreign_key "equipped_tokens", "tokens", on_delete: :cascade
+  add_foreign_key "slots", "players", on_delete: :cascade
   add_foreign_key "token_collections", "players", on_delete: :cascade
   add_foreign_key "token_collections", "tokens", on_delete: :cascade
 end
