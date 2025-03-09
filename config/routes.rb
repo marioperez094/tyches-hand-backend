@@ -24,6 +24,11 @@ Rails.application.routes.draw do
 
       #Token Routes
       resources :tokens, only: [:show]
+
+      #Slot Routes
+      resources :slots do
+        put 'update_tokens', on: :collection, to: 'slots#update_tokens'
+      end
     end
   end
 end

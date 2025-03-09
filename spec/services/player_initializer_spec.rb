@@ -2,7 +2,6 @@
 require 'rails_helper'
 
 RSpec.describe PlayerInitializer, type: :service do
-  let(:player) { create(:player) }
 
   # Create 52 standard cards in the database.
   let!(:standard_cards) do
@@ -17,14 +16,11 @@ RSpec.describe PlayerInitializer, type: :service do
     end
   end
 
+  let(:player) { create(:player) }
+
   subject(:initializer) { described_class.new(player) }
 
   describe "#call" do
-    before do
-      initializer.call
-      player.reload
-    end
-
     it "creates a deck for the player" do
       expect(player.deck).to be_present
     end
@@ -35,6 +31,22 @@ RSpec.describe PlayerInitializer, type: :service do
 
     it "associates the deck's cards with the player" do
       expect(player.cards).to match_array(player.deck.cards)
+    end
+
+    it "creates slots for the player" do
+      expect(player.slots.count).to eq(6)
+    end
+
+    it "creates 1 Inscribed slot" do
+      expect(player.slots.by_slot_type("Inscribed").count).to eq(1)
+    end
+    
+    it "creates 2 Oathbound slots" do
+      expect(player.slots.by_slot_type("Oathbound").count).to eq(2)
+    end
+
+    it "creates 3 Offering slots" do
+      expect(player.slots.by_slot_type("Offering").count).to eq(3)
     end
   end
 end
