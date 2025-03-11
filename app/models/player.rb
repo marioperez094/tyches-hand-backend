@@ -4,7 +4,8 @@ class Player < ApplicationRecord
   has_many :equipped_cards, through: :deck, source: :cards
 
   has_many :slots, dependent: :destroy
-  has_many :equipped_tokens, through: :slots, source: :equipped_tokens
+  has_many :equipped_tokens, through: :slots
+  has_many :loadout_tokens, through: :equipped_tokens, source: :token
 
   has_many :card_collections, dependent: :destroy
   has_many :cards, through: :card_collections

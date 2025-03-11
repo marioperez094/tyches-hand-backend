@@ -87,7 +87,7 @@ RSpec.describe Card, type: :model do
     end
 
     it "generates the correct description" do
-      expect(card.description).to include("An Exhumed Ace of Spades")
+      expect(card.description).to include("Cards ripped from a corpse's stiff grip.")
     end
 
     it "generates the correct effect description" do

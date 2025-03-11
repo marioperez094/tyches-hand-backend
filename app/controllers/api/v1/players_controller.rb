@@ -104,6 +104,8 @@ class Api::V1::PlayersController < ApplicationController
     @include_deck_stats = params[:deck_stats] == 'true'
     @include_deck_cards = params[:deck_cards] == 'true'
     @include_collection_cards = params[:collection_cards] == 'true'
+    @include_collection_tokens = params[:collection_tokens] == 'true'
+    @include_slots = params[:slots] == 'true'
 
     @player = current_player
     render 'api/players/show'

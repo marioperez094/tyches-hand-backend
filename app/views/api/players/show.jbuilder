@@ -22,4 +22,21 @@ json.player do
       end
     end
   end
+
+  if @include_collection_tokens
+    json.total_tokens @player.tokens.count
+    json.collection_tokens do
+      json.array! @player.tokens.where.not(id: @player.loadout_tokens.select(:id)) do |token|
+        json.partial! 'api/tokens/token', token: token
+      end
+    end
+  end
+
+  if @include_slots
+    json.slots do
+      json.array! @player.slots do |slot|
+        json.partial! 'api/slots/slot', slot: slot
+      end
+    end
+  end
 end
