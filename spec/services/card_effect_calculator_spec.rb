@@ -26,7 +26,7 @@ RSpec.describe CardEffectCalculator do
       let(:card_rank)  { 11 }
       
       it 'returns the correct description' do
-        expected_description = "An #{card_name}, cards ripped from a corpse's stiff grip."
+        expected_description = "Cards ripped from a corpse's stiff grip."
         expect(subject.description).to eq(expected_description)
       end
 

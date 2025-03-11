@@ -1,6 +1,10 @@
 class Api::V1::SlotsController < ApplicationController
   def update_tokens
     ActiveRecord::Base.transaction do
+      #Removes equipped tokens to prevent duplicate errors
+      slot_ids = params[:slots].map { |slot| slot[:id] }
+      EquippedToken.where(slot_id: slot_ids).destroy_all
+
       params[:slots].each do |slot_params|
         #Confirms player owns the slot and the player owns the token
         slot = current_player.slots.find(slot_params[:id])
@@ -11,9 +15,6 @@ class Api::V1::SlotsController < ApplicationController
           return render json: { error: 'Player does not own this token.' }, 
           status: :unprocessable_entity
         end
-
-        #Deletes slotted token association, including unequipping tokens for empty slots.
-        slot.equipped_token&.destroy!
 
         #Only adds a token if there's a token present, can unequip a slot and no error will return
         slot.create_equipped_token!(token_id: token.id) if token.present?

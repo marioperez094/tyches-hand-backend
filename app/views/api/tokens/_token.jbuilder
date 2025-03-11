@@ -7,3 +7,4 @@ json.inscribed_effect  token.inscribed_effect
 json.oathbound_effect  token.oathbound_effect
 json.offering_effect   token.offering_effect
 json.lore_token        token.lore_token
+json.sequence_order    token.sequence_order
