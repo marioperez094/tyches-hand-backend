@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_03_09_061254) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_12_025617) do
   create_table "card_collections", force: :cascade do |t|
     t.integer "player_id"
     t.integer "card_id"
@@ -34,6 +34,19 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_09_061254) do
     t.index ["effect"], name: "index_cards_on_effect"
     t.index ["rank"], name: "index_cards_on_rank"
     t.index ["suit"], name: "index_cards_on_suit"
+  end
+
+  create_table "daimons", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "rune", null: false
+    t.string "effect_type", null: false
+    t.json "dialogue_set", default: {}
+    t.text "intro", null: false
+    t.text "player_win", null: false
+    t.text "player_lose", null: false
+    t.json "taunts", default: []
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "decks", force: :cascade do |t|

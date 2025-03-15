@@ -4,7 +4,7 @@ class CreateTokens < ActiveRecord::Migration[7.2]
       t.string :name, null: false                              #Name of token
       t.string :rune, null: false                              #Unique symbol to appear on token
       t.text :description, null: false                         #Token lore description
-      t.string :effect_type, null: false                       #Defintes if it's "damage", "healing", "misc"
+      t.string :effect_type, null: false                       #Defines if it's "damage", "healing", "misc"
 
       #Slot-specific effects
       t.text :inscribed_effect, null: false                    #Effect of token if placed in inscribed slot

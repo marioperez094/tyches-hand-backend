@@ -1,0 +1,2 @@
+class Daimon < ApplicationRecord
+end
