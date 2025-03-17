@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_03_12_025617) do
+ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
   create_table "card_collections", force: :cascade do |t|
     t.integer "player_id"
     t.integer "card_id"
@@ -39,8 +39,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_12_025617) do
   create_table "daimons", force: :cascade do |t|
     t.string "name", null: false
     t.string "rune", null: false
+    t.string "effect"
     t.string "effect_type", null: false
-    t.json "dialogue_set", default: {}
+    t.integer "progression_level", default: 0, null: false
     t.text "intro", null: false
     t.text "player_win", null: false
     t.text "player_lose", null: false
@@ -77,12 +78,39 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_12_025617) do
     t.index ["token_id"], name: "index_equipped_tokens_on_token_id"
   end
 
+  create_table "games", force: :cascade do |t|
+    t.integer "player_id", null: false
+    t.integer "story_daimon_progress", default: -1, null: false
+    t.integer "current_round", default: 1, null: false
+    t.integer "status", default: 0, null: false
+    t.integer "total_hands_won", default: 0, null: false
+    t.integer "total_hands_lost", default: 0, null: false
+    t.integer "win_streak", default: 0, null: false
+    t.integer "longest_win_streak", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["player_id"], name: "index_games_on_player_id"
+  end
+
+  create_table "hands", force: :cascade do |t|
+    t.integer "round_id", null: false
+    t.integer "hand_number", default: 1, null: false
+    t.integer "blood_wager", default: 1000, null: false
+    t.json "player_hand", default: []
+    t.json "daimon_hand", default: []
+    t.integer "winner", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["round_id"], name: "index_hands_on_round_id"
+  end
+
   create_table "players", force: :cascade do |t|
     t.string "username", null: false
     t.string "password_digest"
     t.boolean "is_guest", default: false, null: false
     t.boolean "tutorial_finished", default: false, null: false
     t.integer "blood_pool", default: 5000, null: false
+    t.integer "max_blood_pool", default: 5000, null: false
     t.integer "max_daimon_health_reached", default: 0, null: false
     t.integer "max_round_reached", default: 0, null: false
     t.integer "lore_progression", default: 0, null: false
@@ -92,6 +120,22 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_12_025617) do
     t.index ["max_daimon_health_reached"], name: "index_players_on_max_daimon_health_reached"
     t.index ["max_round_reached"], name: "index_players_on_max_round_reached"
     t.index ["username"], name: "index_players_on_username", unique: true
+  end
+
+  create_table "rounds", force: :cascade do |t|
+    t.integer "game_id", null: false
+    t.integer "daimon_id", null: false
+    t.integer "round_number", default: 1, null: false
+    t.integer "hand_counter", default: 1, null: false
+    t.json "shuffled_deck", default: []
+    t.json "discard_pile", default: []
+    t.integer "daimon_max_blood_pool", null: false
+    t.integer "daimon_current_blood_pool", null: false
+    t.integer "winner", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["daimon_id"], name: "index_rounds_on_daimon_id"
+    t.index ["game_id"], name: "index_rounds_on_game_id"
   end
 
   create_table "slots", force: :cascade do |t|
@@ -136,6 +180,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_12_025617) do
   add_foreign_key "equipped_cards", "decks", on_delete: :cascade
   add_foreign_key "equipped_tokens", "slots", on_delete: :cascade
   add_foreign_key "equipped_tokens", "tokens", on_delete: :cascade
+  add_foreign_key "games", "players", on_delete: :cascade
+  add_foreign_key "hands", "rounds", on_delete: :cascade
+  add_foreign_key "rounds", "daimons", on_delete: :cascade
+  add_foreign_key "rounds", "games", on_delete: :cascade
   add_foreign_key "slots", "players", on_delete: :cascade
   add_foreign_key "token_collections", "players", on_delete: :cascade
   add_foreign_key "token_collections", "tokens", on_delete: :cascade

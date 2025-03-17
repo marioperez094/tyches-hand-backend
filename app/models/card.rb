@@ -29,7 +29,7 @@ class Card < ApplicationRecord
   scope :by_effect_type, ->(type) { where(effect_type: type) }
   scope :by_undiscovered, ->(player) { where.not(id: player.cards.pluck(:id)) }
 
-  # Validations
+  #Validations
   validates :description, presence: true
   validates :suit, inclusion: { in: SUITS }, presence: true
   validates :name, uniqueness: true, presence: true

@@ -10,7 +10,7 @@ class Token < ApplicationRecord
   #Scopes
   scope :lore_tokens, -> { where(lore_token: true).order(:sequence_order) }
   scope :by_effect_type, ->(type) { where(effect_type: type) }
-  #scope :by_undiscovered, ->(player) { where.not(id: player.tokens.pluck(:id)) }
+  scope :by_undiscovered, ->(player) { where.not(id: player.tokens.pluck(:id)) }
 
   #Validations
   validates :name, presence: true, uniqueness: true

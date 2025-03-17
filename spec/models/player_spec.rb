@@ -67,9 +67,29 @@ RSpec.describe Player, type: :model do
   end
 
   describe "Associations" do
-    let(:player) { create(:player) }
+    let!(:player) { create(:player) }
+    let!(:daimon) { create(:daimon, progression_level: 0) }
     let(:card1) { create(:card) }
-    let(:card2) { create(:card, effect: 'Exhumed')}
+    let(:card2) { create(:card, effect: 'Exhumed') }
+    let(:token) { create(:token) }
+    let(:deck) { player.deck }
+
+    it "has a deck" do
+      expect(player.deck.name).to eq("#{player.username}'s Deck")
+      expect(Deck.count).to eq(1)
+    end
+
+    it "deletes associated deck when destroyed" do
+      
+      expect(player.deck.name).to eq("#{player.username}'s Deck")
+      expect(Deck.count).to eq(1)
+
+      player.force_delete = true
+      player.destroy!
+
+      expect(Player.count).to eq(0)
+      expect(Deck.count).to eq(0)
+    end
 
     it "has many cards through collections" do
       player.cards << [card1, card2]
@@ -87,6 +107,44 @@ RSpec.describe Player, type: :model do
 
       expect(Player.count).to eq(0)
       expect(CardCollection.count).to eq(0)
+    end
+
+    it "has many tokens through equipped_tokens" do
+      player = FactoryBot.create(:player)
+      token = FactoryBot.create(:token)
+      player.tokens << token
+
+      expect(player.tokens).to include(token)
+    end
+
+    it "deletes associated token collection when destroyed" do
+      player_token = TokenCollection.create!(player: player, token: token)
+      
+      expect(TokenCollection.count).to eq(1)
+
+      player.force_delete = true
+      player.destroy!
+
+      expect(Player.count).to eq(0)
+      expect(TokenCollection.count).to eq(0)
+    end
+
+    it 'has many games' do
+      game = Game.create!(player: player)
+
+      expect(player.games).to include(game)
+    end
+
+    it 'deletes associated game when destroyed' do
+      game = Game.create!(player: player)
+
+      expect(Game.count).to eq(1)
+
+      player.force_delete = true
+      player.destroy!
+
+      expect(Player.count).to eq(0)
+      expect(Game.count).to eq(0)
     end
   end
 

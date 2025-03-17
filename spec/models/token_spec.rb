@@ -70,6 +70,7 @@ RSpec.describe Token, type: :model do
   end
 
   describe "Scopes" do
+    let(:player) { create(:player) }
     let!(:lore_token_1) { create(:token, lore_token: true, sequence_order: 0) }
     let!(:lore_token_2) { create(:token, name: 'Ear of Tyche', rune: 'I', lore_token: true, sequence_order: 1) }
     let!(:damage_token) { create(:token, name: 'Damage of Tyche', rune: 'F', effect_type: "Damage") }
@@ -82,6 +83,25 @@ RSpec.describe Token, type: :model do
     it ".by_effect_type returns tokens of the correct effect type" do
       expect(Token.by_effect_type("Damage")).to include(damage_token)
       expect(Token.by_effect_type("Damage")).not_to include(healing_token)
+    end
+
+    it ".by_undiscovered returns all tokens" do
+      undiscovered_tokens = Token.by_undiscovered(player)
+      expect(undiscovered_tokens).to contain_exactly(lore_token_1, lore_token_2, damage_token, healing_token)
+    end
+
+    it 'returns only the undiscovered tokens' do
+      player.tokens << lore_token_1
+      
+      undiscovered_tokens = Token.by_undiscovered(player)
+      expect(undiscovered_tokens).to contain_exactly(lore_token_2, damage_token, healing_token)
+    end
+
+    it 'returns an empty result for undiscovered tokens' do
+      player.tokens << [lore_token_1, lore_token_2, damage_token, healing_token]
+
+      undiscovered_tokens = Token.by_undiscovered(player)
+      expect(undiscovered_tokens).to be_empty
     end
   end
 

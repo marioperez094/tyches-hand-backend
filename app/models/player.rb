@@ -12,6 +12,8 @@ class Player < ApplicationRecord
 
   has_many :token_collections, dependent: :destroy
   has_many :tokens, through: :token_collections
+
+  has_many :games, dependent: :destroy
   
   #Callbacks 
   before_validation :assign_guest_username, if: :guest?
@@ -31,7 +33,7 @@ class Player < ApplicationRecord
               :create, :update_password, :convert_to_registered, :destroy
             ], unless: :guest?
   validates :password_confirmation, presence: true, on: [:create, :update_password, :destroy], unless: :guest?
-  validates :blood_pool, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 5000 }
+  validates :blood_pool, :max_blood_pool, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 5000 }
   validates :lore_progression, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   attr_accessor :force_delete #Allows manual delition when explicitly request 
@@ -42,6 +44,16 @@ class Player < ApplicationRecord
 
   def owns_token?(token_id)
     tokens.exists?(token_id)
+  end
+
+  #Updates changes to player health
+  def update_player_health(amount)
+    return if amount.zero?
+  
+    self.blood_pool += amount
+    self.blood_pool = [self.blood_pool, max_blood_pool].min #Prevent overhealing
+    self.blood_pool = [self.blood_pool, 0].max #Prevent going below 0
+    save!
   end
 
   private
