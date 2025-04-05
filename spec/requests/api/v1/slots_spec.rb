@@ -7,9 +7,9 @@ RSpec.describe "Api::V1::Slots", type: :request do
   let(:token2) { FactoryBot.create(:token, name: 'Ear of Tyche', rune: 'I') }
   let(:token3) { FactoryBot.create(:token, name: 'Heart of Tyche', rune: 'H')}
 
-  let!(:inscribed_slot) { player.slots.find_by(slot_type: "Inscribed") }
-  let!(:oathbound_slot_slot) { player.slots.find_by(slot_type: "Oathbound") }
-  let!(:offering_slot) { player.slots.find_by(slot_type: "Offering") }
+  let!(:inscribed_slot) { player.inscribed_slot }
+  let!(:oathbound_slot_slot) { player.slots.by_slot_type('Oathbound').first }
+  let!(:offering_slot) { player.slots.by_slot_type('Offering').first }
 
   def auth_header_for(player)
     token = JsonWebToken.encode(player_id: player.id)
@@ -54,20 +54,21 @@ RSpec.describe "Api::V1::Slots", type: :request do
           { id: 3, token_id: nil },
           { id: 4, token_id: nil },
           { id: 5, token_id: nil },
-          { id: 6, token_id: nil }
+          { id: 6, token_id: token3.id }
         ]
       }
 
       put '/api/v1/slots/update_tokens', 
         headers: auth_header_for(player),
         params: update_params
-
+                
       expect(response).to have_http_status(:unprocessable_entity)
       expect(json_response['error']).to include("Token is already assigned to another slot.")
     end
 
     it 'allows unequipping a token' do
-      inscribed_slot.create_equipped_token!(token: token1)
+      collection = player.token_collections.create!(token: token1)
+      inscribed_slot.create_equipped_token!(token_collection: collection)
 
       expect(inscribed_slot.token.id).to eq (token1.id)
 
@@ -95,7 +96,7 @@ RSpec.describe "Api::V1::Slots", type: :request do
         params: update_params
 
       expect(response).to have_http_status(:unprocessable_entity)
-      expect(json_response['error']).to include("Player does not own this token.")
+      expect(json_response['error']).to include("Token is not owned by the player.")
     end
   end
 end

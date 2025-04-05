@@ -21,14 +21,14 @@ RSpec.describe "Api::V1::Cards", type: :request do
 
       it "returns the card data" do
         json_card = json_response['card']
-
+        
         expect(json_card['name']).to include(card.name)
         expect(json_card['suit']).to include(card.suit)
         expect(json_card['rank']).to include(card.rank)
         expect(json_card['description']).to include(card.description)
         expect(json_card['effect']).to include(card.effect)
-        expect(json_card['effect_description']).to include(card.effect_description)
-        expect(json_card['effect_value']).to eq(card.calculate_effect_value)
+        expect(json_card['effect_description']).to include(EffectTypes::EFFECT_ACTIONS[card.effect_type][:description])
+        expect(json_card['effect_values']).to eq({"daimon_health"=>{"value"=>-11.67, "apply_on_phase"=>"hand_start"}})
       end
     end
 

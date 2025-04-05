@@ -1,145 +1,149 @@
 require 'rails_helper'
 
 RSpec.describe Round, type: :model do
-  let!(:player) { create(:player, blood_pool: 5000) }
-  let!(:daimon) { create(:daimon, effect: 'none', progression_level: 0) }
-  let(:game) { create(:game, player: player) }
-  let(:round) { game.rounds.first }
+  describe 'Validations' do
+    let!(:player) { create(:player) }
+    let!(:daimon) { create(:daimon) }
+    let!(:game) { create(:game, player: player) }
+    let(:round) { game.round }
 
-  ### ✅ Validations
-  describe "Validations" do
-    it "is valid with all required attributes" do
-      expect(round).to be_valid
+    context 'basic attributes' do
+      it 'is valid with all attributes' do
+        expect(round).to be_valid
+      end
+
+      it 'is invalid without a status' do
+        round.status = nil
+        expect(round).not_to be_valid
+      end
+
+      it 'is invalid with an incorrect winner status' do
+        expect { round.status = :win }.to raise_error(ArgumentError)
+      end
+
+      it 'cannot have duplicate card ids' do
+        round.shuffled_deck = [1, 1] + (3..49).to_a
+        expect(round).not_to be_valid
+        expect(round.errors.full_messages).to include('Shuffled deck contains duplicate card IDs.')
+      end
     end
 
-    it "is invalid without a round_number" do
-      round.round_number = nil
-      expect(round).not_to be_valid
-    end
+    context 'numeric fields' do
+      [
+        :card_count,
+        :hands_played,
+        :player_max_blood_pool,
+        :daimon_blood_pool,
+        :daimon_max_blood_pool,
+      ].each do |field|
+        it "requires #{field} to be present" do
+          round.send("#{field}=", nil)
+          expect(round).not_to be_valid
+          expect(round.errors[field]).to include("can't be blank")
+        end
 
-    it "is invalid with negative daimon health" do
-      round.daimon_current_blood_pool = -10
-      expect(round).not_to be_valid
-    end
+        it "requires #{field} to be a number" do
+          round.send("#{field}=", 's')
+          expect(round).not_to be_valid
+          expect(round.errors[field]).to include('is not a number')
+        end
 
-    it "is invalid if hand_counter is less than 1" do
-      round.hand_counter = 0
-      expect(round).not_to be_valid
-    end
-  end
-
-  ### ✅ Callbacks: `initialize_round`, `start_first_hand`
-  describe "Callbacks" do
-    it "initializes round attributes correctly" do
-      new_round = Round.create!(game: game, daimon: daimon, round_number: 1, hand_counter: 1)
-      
-      expect(new_round.daimon_max_blood_pool).to eq(new_round.calculate_daimon_health)
-      expect(new_round.daimon_current_blood_pool).to eq(new_round.daimon_max_blood_pool - 500)
-    end
-
-    it "creates the first hand after the round is created" do
-      expect(round.hands.count).to eq(1)
-      expect { create(:round, game: game, daimon: daimon, round_number: 2) }.to change { Hand.count }.by(1)
-    end
-  end
-
-  ### ✅ `calculate_daimon_health` Method
-  describe "#calculate_daimon_health" do
-    it "returns the correct base health at round 1" do
-      expect(round.calculate_daimon_health).to eq(2500)
-    end
-
-    it "scales Daimon health for higher rounds" do
-      high_round = create(:round, game: game, daimon: daimon, round_number: 5)
-      expected_health = ((2500 * (1.155 ** 4))).to_i # 4 exponent since it's round 5
-      expect(high_round.calculate_daimon_health).to eq(expected_health)
-    end
-
-    it "doubles health if the Daimon has the 'double_health' effect" do
-      daimon.update!(effect: "double_health")
-      expect(round.calculate_daimon_health).to eq(5000) # 2500 * 2
+        it "requires #{field} to be greater than or equal to 0" do
+          round.send("#{field}=", -1)
+          expect(round).not_to be_valid
+          expect(round.errors[field]).to include('must be greater than or equal to 0')
+        end
+      end
     end
   end
 
-  ### ✅ `calculate_wager` Method
-  describe "#calculate_wager" do
-    it "returns 500 for hands before round 5" do
-      round.update!(hand_counter: 4)
-      expect(round.calculate_wager).to eq(500)
+  describe 'Associations' do
+    let!(:player) { create(:player) }
+    let!(:daimon) { create(:daimon) }
+    let!(:game) { create(:game, player: player) }
+    let!(:round) { game.round }
+    let!(:hand) { create(:hand, round: round) }
+
+    it 'belongs to a game' do
+      expect(round.game).to eq(game)
     end
 
-    it "increases wager after hand 5" do
-      round.update!(hand_counter: 6)
-      expected_wager = 500 + (410 * (6 - 4))
-      expect(round.calculate_wager).to eq(expected_wager)
+    it 'belongs to a daimon' do
+      expect(round.daimon).to eq(daimon)
     end
-  end
 
-  ### ✅ Deck Management
-  describe "#reshuffle_if_empty" do
-    it "calls RoundDeckService to reshuffle if the deck is empty" do
-      deck_service = instance_double(RoundDeckService)
-      allow(RoundDeckService).to receive(:new).with(round).and_return(deck_service)
-      allow(deck_service).to receive(:reshuffle_if_empty)
-
-      round.reshuffle_if_empty
-
-      expect(deck_service).to have_received(:reshuffle_if_empty)
+    it 'has a hand and destroys when deleted' do
+      expect(round.hand).to eq(hand)
+      expect{ round.destroy }.to change { Hand.count }.by(-1)
     end
   end
 
-  describe "#update_shuffled_deck" do
-    it "updates the shuffled deck correctly" do
-      new_deck = [1, 2, 3, 4, 5]
-      round.update_shuffled_deck(new_deck)
-      expect(round.shuffled_deck).to eq(new_deck)
+  describe 'Instance Methods' do
+    let!(:standard_cards) do
+      suits = Card::SUITS
+      ranks = Card::RANKS
+      suits.product(ranks).map do |suit, rank|
+        create(:card,
+          effect: 'Standard',
+          suit: suit,
+          rank: rank
+        )
+      end
     end
-  end
+    
+    let!(:player) { create(:player, tutorial_finished: true) }
+    let!(:daimon) { create(:daimon) }
+    let!(:game){ create(:game, player: player) }
+    let!(:round){ game.round }
 
-  ### ✅ Daimon Health Management
-  describe "#update_daimon_health" do
-    it "decreases Daimon's health correctly" do
-      expect { round.update_daimon_health(-500) }
-        .to change { round.reload.daimon_current_blood_pool }.by(-500)
-    end
+    context '#shuffle_deck_on_create' do
+      let!(:new_round) { game.build_round(
+        daimon: daimon,
+        daimon_blood_pool: 1,
+        daimon_max_blood_pool: 1,
+      )}
 
-    it "does not decrease below zero" do
-      expect { round.update_daimon_health(-999999) }
-        .to change { round.reload.daimon_current_blood_pool }.to(0)
-    end
+      it 'does not shuffle a deck if it is present' do
+        shuffled_deck = round.reshuffle_if_empty
+        new_round.shuffled_deck = shuffled_deck
 
-    it "does not increase above max health" do
-      round.update!(daimon_current_blood_pool: 2000)
-      expect { round.update_daimon_health(5000) }
-        .to change { round.reload.daimon_current_blood_pool }.to(round.daimon_max_blood_pool)
-    end
+        new_round.save!
+        
+        expect(game.round).not_to eq(round)
+        expect(new_round.shuffled_deck).to eq(shuffled_deck)
+      end
 
-    it "does not update if the amount is zero" do
-      expect { round.update_daimon_health(0) }
-        .not_to change { round.reload.daimon_current_blood_pool }
-    end
-  end
+      it 'sets a shuffled a deck if one is not present' do
+        expect(new_round.shuffled_deck).to eq([])
 
-  ### ✅ Round Completion Check
-  describe "#round_over?" do
-    it "returns false if the round is still active" do
-      expect(round.round_over?).to be false
-    end
-
-    it "updates winner to daimon and returns true when player has no blood" do
-      player.update!(blood_pool: 0)
-      expect(round.round_over?).to be true
-      expect(round.reload.winner).to eq("daimon")
-    end
-
-    it "updates winner to player and returns true when Daimon has no blood" do
-      round.update!(daimon_current_blood_pool: 0)
-      expect(round.round_over?).to be true
-      expect(round.reload.winner).to eq("player")
+        new_round.save!
+        
+        expect(game.round).not_to eq(round)
+        expect(new_round.shuffled_deck).to be_an(Array)
+        expect(new_round.shuffled_deck).not_to eq([])
+      end
     end
 
-    it "does not update winner if the round is not over" do
-      expect { round.round_over? }.not_to change { round.reload.winner }
+    context '#reshuffle_if_empty' do
+      it 'reshuffles an empty shuffled deck' do
+        original_deck = round.shuffled_deck
+        round.shuffled_deck = []
+        round.discard_pile = original_deck
+
+        expect(round.shuffled_deck).to eq([])
+
+        round.reshuffle_if_empty
+
+        expect(round.shuffled_deck).not_to be_empty
+        expect(round.discard_pile).to eq([])
+        expect(round.shuffled_deck).to be_an(Array)
+      end
+
+      it 'does nothing if the deck is not empty' do
+        original_deck = round.shuffled_deck.dup
+        round.reshuffle_if_empty
+        expect(round.shuffled_deck).to eq(original_deck)
+      end
     end
   end
 end

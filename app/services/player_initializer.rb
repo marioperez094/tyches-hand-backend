@@ -20,14 +20,20 @@ class PlayerInitializer
 
     #Populates the deck with 52 standard cards
     standard_cards = Card.by_effect('Standard')
-    
-    deck.cards << standard_cards
-    @player.cards << standard_cards
+
+    standard_cards.each do |card|
+      collection = @player.card_collections.create!(card: card)
+      deck.equipped_cards.create!(card_collection: collection)
+    end
   end
 
   def initialize_slots
-    @player.slots.create!(slot_type: "Inscribed")
-    2.times { @player.slots.create!(slot_type: "Oathbound") }
-    3.times { @player.slots.create!(slot_type:"Offering") }
+    {
+      "Inscribed" => 1,
+      "Oathbound" => 2,
+      "Offering"  => 3
+    }.each do |type, count|
+      count.times { @player.slots.create!(slot_type: type) }
+    end
   end
 end

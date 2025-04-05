@@ -2,8 +2,8 @@ class CreateGames < ActiveRecord::Migration[7.2]
   def change
     create_table :games do |t|
       t.references :player, null: false, index: true, foreign_key: { on_delete: :cascade }
-      t.integer :story_daimon_progress, default: -1, null: false                #Tracks the last daimon faced by the player
-      t.integer :current_round, default: 1, null: false                         #Tracks the current round
+      t.integer :daimon_progress, default: -1, null: false                #Tracks the last daimon faced by the player
+      t.integer :rounds_played, default: 0, null: false                         #Tracks the current round
       t.integer :status, default: 0, null: false                                #Enum: 0 = in_progress, 1 = lost
       
 

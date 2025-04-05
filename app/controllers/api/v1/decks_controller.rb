@@ -14,32 +14,29 @@ class Api::V1::DecksController < ApplicationController
   end
 
   def update_cards
+    #Converts card ids to player collection ids
     new_card_ids = params[:deck][:cards].map { |card| card[:id].to_i }
-  
-    if new_card_ids.size != 52
-      return render json: { error: "A deck must contain exactly 52 cards." }, status: :unprocessable_entity
+    new_collection_ids = @deck.convert_to_collection_ids(new_card_ids)
+
+    return render json: { error: 'A deck must contain exactly 52 cards.'},
+    status: :unprocessable_entity if new_collection_ids.size != 52
+
+    current_collection_ids = @deck.card_collections
+
+    #Determine which cards to add or remove
+    collection_ids_to_add = new_collection_ids - current_collection_ids
+    collection_ids_to_remove = current_collection_ids - new_collection_ids
+
+    collections_to_insert = collection_ids_to_add.map do |collection|
+      { deck_id: @deck.id, card_collection_id: collection.id }
     end
-  
-    current_card_ids = @deck.cards.pluck(:id)
-  
-    # Determine which cards to add or remove
-    card_ids_to_add = new_card_ids - current_card_ids
-    card_ids_to_remove = current_card_ids - new_card_ids
-  
-    # Find invalid card selections (cards the player does not own)
-    invalid_card_ids = card_ids_to_add.reject { |card_id| current_player.owns_card?(card_id) }
-  
-    return render json: { error: "Player does not own the following cards: #{invalid_card_ids.join(', ')}" },
-    status: :unprocessable_entity if invalid_card_ids.any?
-  
-    cards_to_insert = card_ids_to_add.map do |card_id|
-      { deck_id: @deck.id, card_id: card_id, created_at: Time.current, updated_at: Time.current }
-    end
-  
-    EquippedCard.insert_all(cards_to_insert) unless cards_to_insert.empty?
-  
-    @deck.equipped_cards.where(card_id: card_ids_to_remove).delete_all
-  
+
+    #Adds new cards
+    EquippedCard.insert_all(collections_to_insert) unless collections_to_insert.empty?
+
+    #Deletes cards removed from deck
+    @deck.equipped_cards.where(card_collection: collection_ids_to_remove).delete_all
+
     if @deck.save
       render json: { success: true }, status: :ok
     else

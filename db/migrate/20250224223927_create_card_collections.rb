@@ -1,8 +1,8 @@
 class CreateCardCollections < ActiveRecord::Migration[7.2]
   def change
     create_table :card_collections do |t|
-      t.belongs_to :player, index: true, foreign_key: { on_delete: :cascade }
-      t.belongs_to :card, index: true, foreign_key: { on_delete: :cascade }
+      t.references :player, null: false, foreign_key: { on_delete: :cascade }
+      t.references :card, null: false, foreign_key: { on_delete: :cascade }
 
       t.timestamps
     end

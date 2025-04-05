@@ -1,121 +1,138 @@
 require 'rails_helper'
 
 RSpec.describe Token, type: :model do
-  describe "Validations" do
-    it "is valid with a name, effect type, slot effects, and correct lore sequence" do
-      token = build(:token, lore_token: false, sequence_order: nil)
-      expect(token).to be_valid
-    end
+  describe 'Validations' do
+    let(:token) { build(:token) }
 
-    it "is invalid without a name" do
-      token = build(:token, name: nil)
-      expect(token).not_to be_valid
-    end
+    context 'basic attributes' do
+      it 'is valid with all attributes' do
+        expect(token).to be_valid
+      end
 
-    it "requires a unique name" do
-      create(:token, name: "Eye of Tyche")
-      duplicate_token = build(:token, name: "Eye of Tyche", sequence_order: 2)
-      expect(duplicate_token).not_to be_valid
-    end
-
-    it "requires an effect type from the EFFECT_TYPES list" do
-      valid_token = build(:token, effect_type: "Damage")
-      invalid_token = build(:token, name: "Ear of Tyche", effect_type: "InvalidType")
-
-      expect(valid_token).to be_valid
-      expect(invalid_token).not_to be_valid
-    end
-
-    it "requires inscribed, oathbound, and offering effects to be present" do
-      token = build(:token, inscribed_effect: nil)
-      expect(token).not_to be_valid
-    end
-
-    it "ensures lore tokens have a sequence order" do
-      token = build(:token, lore_token: true, sequence_order: nil)
-      expect(token).not_to be_valid
-    end
-
-    it "ensures non-lore tokens do not have a sequence order" do
-      token = build(:token, lore_token: false, sequence_order: 1)
-      expect(token).not_to be_valid
-    end
-
-    it "ensures sequence_order is unique among lore tokens" do
-      create(:token, lore_token: true, sequence_order: 1)
-      duplicate_sequence = build(:token, name: 'Ear of Tyche', lore_token: true, sequence_order: 1)
-
-      expect(duplicate_sequence).not_to be_valid
-    end
-  end
+      it 'is invalid without a name' do
+        token.name = nil
+        expect(token).not_to be_valid
+      end
   
-  describe "Associations" do
-    let (:token) { create(:token) }
-    let(:player) { create(:player) }
+      it 'requires a unique name' do
+        create(:token, name: 'Eye of Tyche')
+        duplicate_token = build(:token, name: 'Eye of Tyche', story_sequence: 2)
+        expect(duplicate_token).not_to be_valid
+      end
 
-    it "can be added to a player's token collection" do
-      player_token = TokenCollection.create!(player: player, token: token)
-      expect(player.tokens).to include(token)
-      expect(token.players).to include(player)
-    end
+      it 'is invalid without a rune' do
+        token.rune = nil
+        expect(token).not_to be_valid
+      end
+  
+      it 'requires a unique rune' do
+        create(:token, rune: 'T')
+        duplicate_token = build(:token, rune: 'T', story_sequence: 2)
+        expect(duplicate_token).not_to be_valid
+      end
 
-    it "destroys associated collections when deleted" do
-      player_token = TokenCollection.create!(player: player, token: token)
-
-      expect(TokenCollection.count).to eq(1)
-      token.destroy!
-
-      expect(TokenCollection.count).to eq(0)
-    end
-  end
-
-  describe "Scopes" do
-    let(:player) { create(:player) }
-    let!(:lore_token_1) { create(:token, lore_token: true, sequence_order: 0) }
-    let!(:lore_token_2) { create(:token, name: 'Ear of Tyche', rune: 'I', lore_token: true, sequence_order: 1) }
-    let!(:damage_token) { create(:token, name: 'Damage of Tyche', rune: 'F', effect_type: "Damage") }
-    let!(:healing_token) { create(:token, name: 'Heal of Tyche', rune: 'S', effect_type: "Heal") }
-
-    it ".lore_tokens returns only lore tokens in order" do
-      expect(Token.lore_tokens).to eq([lore_token_1, lore_token_2])
-    end
-
-    it ".by_effect_type returns tokens of the correct effect type" do
-      expect(Token.by_effect_type("Damage")).to include(damage_token)
-      expect(Token.by_effect_type("Damage")).not_to include(healing_token)
-    end
-
-    it ".by_undiscovered returns all tokens" do
-      undiscovered_tokens = Token.by_undiscovered(player)
-      expect(undiscovered_tokens).to contain_exactly(lore_token_1, lore_token_2, damage_token, healing_token)
-    end
-
-    it 'returns only the undiscovered tokens' do
-      player.tokens << lore_token_1
+      it 'is invalid without a description' do
+        token.description = nil
+        expect(token).not_to be_valid
+      end
       
-      undiscovered_tokens = Token.by_undiscovered(player)
-      expect(undiscovered_tokens).to contain_exactly(lore_token_2, damage_token, healing_token)
-    end
+      it 'is invalid without story_token' do
+        token.story_token = nil
+        expect(token).not_to be_valid
+      end
 
-    it 'returns an empty result for undiscovered tokens' do
-      player.tokens << [lore_token_1, lore_token_2, damage_token, healing_token]
+      it "is valid without story_sequence if it's not a story_token" do
+        token.story_token = false
+        token.story_sequence = nil
+        expect(token).to be_valid
+      end
 
-      undiscovered_tokens = Token.by_undiscovered(player)
-      expect(undiscovered_tokens).to be_empty
+      it "is invalid without story_sequence if it's a story_token" do
+        token.story_token = true
+        token.story_sequence = nil
+        expect(token).not_to be_valid
+      end
+
+      context 'slot effect_type' do  
+        [
+          :inscribed_effect_type,
+          :oathbound_effect_type,
+          :offering_effect_type
+        ].each do |field|
+          it "requires #{field} to be present" do
+            token.send("#{field}=", nil)
+            expect(token).not_to be_valid
+            expect(token.errors[field]).to include("can't be blank")
+          end
+
+          it "requires #{field} to be a valid effect_type" do
+            token.send("#{field}=", 'stars_and_rainbows')
+            expect(token).not_to be_valid
+            expect(token.errors[field]).to include('is not included in the list')
+          end
+        end
+      end
     end
   end
 
-  describe "Class Methods" do
-    let!(:lore_token_1) { create(:token, lore_token: true, sequence_order: 0) }
-    let!(:lore_token_2) { create(:token, name: 'Ear of Tyche', rune: 'I', lore_token: true, sequence_order: 1) }
+  describe 'Associations' do
+    let(:token) { create(:token) }
+    let(:player) { create(:player) }
+    let(:slot) { player.inscribed_slot }
 
-    it ".next_lore_token returns the next lore token based on progression" do
-      expect(Token.next_lore_token(0)).to eq(lore_token_1)
-      expect(Token.next_lore_token(1)).to eq(lore_token_2)
+    it 'has a collection and deletes it when destroyed' do
+      token.players << player
+      expect { token.destroy }.to change { TokenCollection.count }.by(-1)
+    end
+  end
+
+  describe 'Scopes' do
+    let(:player) { create(:player) }
+    let(:story_token_1) { create(:token, story_token: true, story_sequence: 0) }
+    let(:story_token_2) { create(:token, name: 'Ear of Tyche', rune: 'I', story_token: true, story_sequence: 1) }
+    let(:discovered_token) { create(:token, name: 'Damage of Tyche', rune: 'F') }
+    let(:undiscovered_token) { create(:token, name: 'Heal of Tyche', rune: 'S') }
+
+    it 'story_tokens returns only story tokens in order' do
+      expect(Token.story_tokens).not_to eq([story_token_2, story_token_1])
+      expect(Token.story_tokens).to eq([story_token_1, story_token_2])
     end
 
-    it ".next_lore_token returns nil if no lore token is left" do
-      expect(Token.next_lore_token(2)).to be_nil
+    context '#by_undiscovered' do
+      it 'by_undiscovered returns all tokens' do
+        undiscovered_tokens = Token.by_undiscovered(player)
+        expect(undiscovered_tokens).to contain_exactly(story_token_1, story_token_2, discovered_token, undiscovered_token)
+      end
+
+      it 'returns only undiscovered tokens' do
+        player.tokens << story_token_1
+        
+        undiscovered_tokens = Token.by_undiscovered(player)
+        expect(undiscovered_tokens).to contain_exactly(story_token_2, discovered_token, undiscovered_token)
+      end
+
+      it 'returns an empty result fo undiscovered tokens' do
+        player.tokens << [story_token_1, story_token_2, discovered_token, undiscovered_token]
+        
+        undiscovered_tokens = Token.by_undiscovered(player)
+        expect(undiscovered_tokens).to be_empty
+      end
+    end
+  end
+
+  describe 'Instance Methods' do
+    let!(:story_token_1) { create(:token, story_token: true, story_sequence: 0) }
+    let!(:story_token_2) { create(:token, name: 'Ear of Tyche', rune: 'I', story_token: true, story_sequence: 1) }
+
+    describe '#next_story_token' do
+      it ".next_story_token returns the next lore token based on progression" do
+        expect(Token.next_story_token(0)).to eq(story_token_1)
+        expect(Token.next_story_token(1)).to eq(story_token_2)
+      end
+
+      it ".next_story_token returns nil if no lore token is left" do
+        expect(Token.next_story_token(2)).to be_nil
+      end
     end
   end
 end

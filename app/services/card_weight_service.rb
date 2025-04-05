@@ -1,4 +1,4 @@
-class CardWeightService
+module CardWeightService
   def self.calculate_card_weights(cards:, rank_weights: ->(_) { 1 }, effect_weights: ->(_) { 1 }, suit_weights: ->(_) { 1 })
     cards.map do |card|
       rank_weight = rank_weights.call(card)

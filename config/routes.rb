@@ -29,6 +29,11 @@ Rails.application.routes.draw do
       resources :slots do
         put 'update_tokens', on: :collection, to: 'slots#update_tokens'
       end
+
+      #Game Routes
+      resources :games, only: [:create] do
+        get 'show_player_stats', on: :collection, to: 'games#show_player_stats'
+      end
     end
   end
 end

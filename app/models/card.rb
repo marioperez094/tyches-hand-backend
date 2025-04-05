@@ -1,27 +1,27 @@
 class Card < ApplicationRecord
+  include EffectTypes
+
   #Associations
   has_many :card_collections, dependent: :destroy
   has_many :players, through: :card_collections
 
-  has_many :equipped_cards, dependent: :destroy
-  has_many :decks, through: :equipped_cards
-
   #Callbacks
   before_validation :set_card_name
   before_validation :set_effect_details, if: -> { effect.present? }
+  validates :effect_values, effect_values_format: true
 
   #Constants
   RANKS           = %w[2 3 4 5 6 7 8 9 10 Jack Queen King Ace].freeze
-  SUITS           = %w[Hearts Diamonds Clubs Spades].freeze
-  EFFECTS         = %w[Exhumed Charred Fleshwoven Blessed Bloodstained Standard].freeze
-  VALID_EFFECT_TYPES = %w[Damage Pot Heal None].freeze
+  SUITS           = %w[Clubs Diamonds Hearts Spades].freeze
+  EFFECTS         = %w[Blessed Bloodstained Charred Exhumed Fleshwoven Standard].freeze
 
+  #Numerical rank for calculating effect 
   FACE_CARD_RANK = {
     'Jack'  => 11,
     'Queen' => 12,
     'King'  => 13,
     'Ace'   => 15
-  }.freeze
+  }.freeze 
 
   #Scopes
   scope :by_suit, ->(suit) { where(suit: suit) }
@@ -30,19 +30,15 @@ class Card < ApplicationRecord
   scope :by_undiscovered, ->(player) { where.not(id: player.cards.pluck(:id)) }
 
   #Validations
-  validates :description, presence: true
-  validates :suit, inclusion: { in: SUITS }, presence: true
-  validates :name, uniqueness: true, presence: true
+  validates :name, presence: true, uniqueness: true
+  validates :suit, presence: true, inclusion: { in: SUITS }
   validates :rank, presence: true, inclusion: { in: RANKS }
+  validates :description, presence: true
   validates :effect, presence: true, inclusion: { in: EFFECTS } 
-  validates :effect_type, presence: true, inclusion: { in: VALID_EFFECT_TYPES }
+  validates :effect_type, presence: true, inclusion: { in: EffectTypes::EFFECT_ACTIONS.keys }
 
   def card_numeric_rank
     FACE_CARD_RANK[rank] || rank.to_i
-  end
-
-  def calculate_effect_value
-    CardEffectCalculator.new(effect, name, card_numeric_rank).calculate_value
   end
 
   private
@@ -52,9 +48,8 @@ class Card < ApplicationRecord
   end
 
   def set_effect_details
-    calculator = CardEffectCalculator.new(effect, name, card_numeric_rank)
-    self.description ||= calculator.description
-    self.effect_type ||= calculator.effect_type
-    self.effect_description ||= calculator.effect_description
+    self.description ||= CardEffectCalculator.description(effect)
+    self.effect_type ||= CardEffectCalculator.effect_type(effect)
+    self.effect_values ||= CardEffectCalculator.effect_values(effect, card_numeric_rank)
   end
 end

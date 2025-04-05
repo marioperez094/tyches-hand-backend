@@ -28,7 +28,6 @@ RSpec.describe "Api::V1::Tokens", type: :request do
         expect(json_token['name']).to include(token.name)
         expect(json_token['rune']).to include(token.rune)
         expect(json_token['description']).to include(token.description)
-        expect(json_token['effect_type']).to include(token.effect_type)
       end
     end
 

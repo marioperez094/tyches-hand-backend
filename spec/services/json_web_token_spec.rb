@@ -1,4 +1,3 @@
-# spec/services/json_web_token_spec.rb
 require 'rails_helper'
 require 'jwt'
 

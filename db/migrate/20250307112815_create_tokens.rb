@@ -4,22 +4,29 @@ class CreateTokens < ActiveRecord::Migration[7.2]
       t.string :name, null: false                              #Name of token
       t.string :rune, null: false                              #Unique symbol to appear on token
       t.text :description, null: false                         #Token lore description
-      t.string :effect_type, null: false                       #Defines if it's "damage", "healing", "misc"
 
-      #Slot-specific effects
-      t.text :inscribed_effect, null: false                    #Effect of token if placed in inscribed slot
-      t.text :oathbound_effect, null: false                    #Effect of token if placed in oathbound slot
-      t.text :offering_effect, null: false                     #Effect of token if placed in offering slot
+      ### Slot-specific effects
+
+      #Inscribed effects
+      t.string :inscribed_effect_type, null: false             #Effect of token if placed in inscribed slot
+      t.column :inscribed_effect_values, :jsonb, default: {}
+
+      #Oathbound effects
+      t.string :oathbound_effect_type, null: false             #Effect of token if placed in oathbound slot
+      t.column :oathbound_effect_values, :jsonb, default: {}
+
+      #Offering effects
+      t.string :offering_effect_type, null: false              #Effect of token if placed in offering slot
+      t.column :offering_effect_values, :jsonb, default: {}
 
       #Lore Token Attributes
-      t.boolean :lore_token, default: false, null: false       #Boolean if token is a story related toke
-      t.integer :sequence_order, null: true                    #If it's a lore token, the order in which it appears in the story
+      t.boolean :story_token, default: false, null: false       #Boolean if token is a story related toke
+      t.integer :story_sequence, null: true                    #If it's a lore token, the order in which it appears in the story
 
       t.timestamps
     end
-
-    add_index :tokens, :effect_type
-    add_index :tokens, :lore_token
-    add_index :tokens, :sequence_order, unique: true, where: "lore_token = true"
+    
+    add_index :tokens, :story_token
+    add_index :tokens, :story_sequence, unique: true, where: "story_token = true"
   end
 end

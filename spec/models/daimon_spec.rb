@@ -1,106 +1,124 @@
 require 'rails_helper'
 
 RSpec.describe Daimon, type: :model do
-  let(:player) { create(:player, lore_progression: 1) } # Simulating a player with lore progression level 1
-  let!(:daimon_1) { create(:daimon, progression_level: 0, name: "The Whisper", rune: 'T', effect: 'double_wager', taunts: ["Try harder!", "You can't win!"]) }
-  let!(:daimon_2) { create(:daimon, progression_level: 1, name: "The Thrill", rune: 'I', effect: 'avoid_bust') }
-  let!(:daimon_3) { create(:daimon, progression_level: 2, name: "The Pull", effect: 'double_health') }
+  let(:daimon) { build(:daimon) }
 
-  ### ✅ Validations
   describe "Validations" do
     it "is valid with all attributes" do
-      expect(daimon_1).to be_valid
+      expect(daimon).to be_valid
     end
 
     it "is invalid without a name" do
-      daimon_1.name = nil
-      expect(daimon_1).not_to be_valid
+      daimon.name = nil
+      expect(daimon).not_to be_valid
     end
 
     it "is invalid with a duplicate name" do
-      new_daimon = build(:daimon, name: "The Whisper")
-      expect(new_daimon).not_to be_valid
+      create(:daimon, name: 'The Whisper')
+      duplicate_daimon = build(:daimon, name: "The Whisper", story_sequence: 1)
+      expect(duplicate_daimon).not_to be_valid
+    end
+    
+    it 'is invalid with a duplicate rune' do
+      create(:daimon, rune: 'T')
+      duplicate_token = build(:token, rune: 'T', story_sequence: 1)
+      expect(duplicate_token).not_to be_valid
+    end
+    
+    it "is invalid without a description" do
+      daimon.description = nil
+      expect(daimon).not_to be_valid
     end
 
     it "is invalid without an effect_type" do
-      daimon_1.effect_type = nil
-      expect(daimon_1).not_to be_valid
+      daimon.effect_type = nil
+      expect(daimon).not_to be_valid
     end
 
-    it "requires an effect type from the EFFECT_TYPES list" do
-      valid_daimon = build(:daimon, progression_level: 3, rune: 'J', name: 'The Trickster', effect_type: "Damage")
-      invalid_daimon = build(:daimon, progression_level: 4, rune: 'E', name: 'The Obsession', effect_type: 'InvalidType')
-
-      expect(valid_daimon).to be_valid
-      expect(invalid_daimon).not_to be_valid
-    end
-
-    it "is invalid without a rune" do
-      daimon_1.rune = nil
-      expect(daimon_1).not_to be_valid
+    it "requires a valid effect_type" do
+      daimon.effect_type = 'stars_and_rainbows'
+      expect(daimon).not_to be_valid
     end
 
     it "is invalid without an intro dialogue" do
-      daimon_1.intro = nil
-      expect(daimon_1).not_to be_valid
+      daimon.intro = nil
+      expect(daimon).not_to be_valid
     end
 
     it "is invalid without a player_win dialogue" do
-      daimon_1.player_win = nil
-      expect(daimon_1).not_to be_valid
+      daimon.player_win = nil
+      expect(daimon).not_to be_valid
     end
 
     it "is invalid without a player_lose dialogue" do
-      daimon_1.player_lose = nil
-      expect(daimon_1).not_to be_valid
+      daimon.player_lose = nil
+      expect(daimon).not_to be_valid
+    end
+
+    it 'is invalid without in game dialogue' do
+      daimon.dialogue = nil
+      expect(daimon).not_to be_valid
     end
 
     it "is invalid with a negative progression_level" do
-      daimon_1.progression_level = -1
-      expect(daimon_1).not_to be_valid
+      daimon.story_sequence = -1
+      expect(daimon).not_to be_valid
     end
   end
 
-  ### ✅ Scope: by_unlocked
-  describe "Scope: by_unlocked" do
-    it "returns Daimons that the player has unlocked" do
-      unlocked_daimons = Daimon.by_unlocked(player)
-      expect(unlocked_daimons).to include(daimon_1, daimon_2)
-      expect(unlocked_daimons).not_to include(daimon_3)
+  describe 'Associations' do
+    let!(:daimon) { create(:daimon) }
+    let!(:player) { create(:player) }
+    let!(:game) { create(:game, player: player) }
+
+    it 'has many rounds and deletes it when destroyed' do
+      expect(game.round.daimon).to eq(daimon)
+      expect{ daimon.destroy }.to change { Round.count }.by(-1)
     end
   end
 
-  ### ✅ Random Taunt Functionality
-  describe "#random_taunt" do
-    it "returns a random taunt from the JSON array" do
-      expect(daimon_1.taunts).to include(daimon_1.random_taunt)
+  describe 'Scopes' do
+    let!(:discovered_daimon) { create(:daimon, story_sequence: 0) }
+    let!(:undiscovered_daimon) { create(:daimon, name: 'The Draw', rune: 'T', effect_type: 'increase_max_health', story_sequence: 1) }
+    let!(:player) { create(:player) }
+
+    it 'by_unlocked returns only unlocked daimons' do
+      expect(Daimon.by_unlocked(player)).not_to include(undiscovered_daimon)
+      expect(Daimon.by_unlocked(player)).to include(discovered_daimon)
     end
 
-    it "returns '...' if no taunts exist" do
-      daimon_1.taunts = []
-      expect(daimon_1.random_taunt).to eq("...")
+    it 'returns all unlocked daimons' do
+      player.story_progression = 1
+      
+      expect(Daimon.by_unlocked(player)).not_to eq([undiscovered_daimon, discovered_daimon])
+      expect(Daimon.by_unlocked(player)).to eq([discovered_daimon, undiscovered_daimon])
     end
   end
 
-  ### ✅ Next Available Daimon
-  describe ".next_available_daimon" do
-    context "when a Daimon exists for the given progression level" do
-      it "returns the correct Daimon for progression level 0" do
+  describe 'Instance Methods' do
+    let!(:daimon_1) { create(:daimon, story_sequence: 0) }
+    let!(:daimon_2) { create(:daimon, name: 'The Draw', rune: 'T', effect_type: 'increase_max_health', story_sequence: 1) }
+    
+    describe '#next_daimon' do
+      it ".next_story_token returns the next lore token based on progression" do
         expect(Daimon.next_daimon(0)).to eq(daimon_1)
-      end
-
-      it "returns the correct Daimon for progression level 1" do
         expect(Daimon.next_daimon(1)).to eq(daimon_2)
       end
 
-      it "returns the correct Daimon for progression level 2" do
-        expect(Daimon.next_daimon(2)).to eq(daimon_3)
+      it ".next_story_token returns nil if no lore token is left" do
+        expect(Daimon.next_daimon(2)).to be_nil
       end
     end
 
-    context "when no Daimon exists for the given progression level" do
-      it "returns nil if no Daimon matches the given progression level" do
-        expect(Daimon.next_daimon(3)).to be_nil
+    describe '#daimon_dialogue' do
+      it '.dialogue returns a random line of dialogue' do
+        dialogue = daimon.daimon_dialogue
+        expect(daimon.dialogue).to include(dialogue)
+      end
+
+      it "returns '...' if no taunts exist" do
+        daimon.dialogue = []
+        expect(daimon.daimon_dialogue).to eq("...")
       end
     end
   end

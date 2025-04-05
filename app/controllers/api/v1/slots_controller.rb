@@ -6,18 +6,21 @@ class Api::V1::SlotsController < ApplicationController
       EquippedToken.where(slot_id: slot_ids).destroy_all
 
       params[:slots].each do |slot_params|
-        #Confirms player owns the slot and the player owns the token
+        #Skip empty slots - player chose not to equip a token here
+        next unless slot_params[:token_id].present?
+        
         slot = current_player.slots.find(slot_params[:id])
-        token = current_player.tokens.find_by(id: slot_params[:token_id]) if slot_params[:token_id].present?
-
-        #If the player does not own the token or the token doesn't exist, it returns an error
-        if slot_params[:token_id].present? && token.nil?
-          return render json: { error: 'Player does not own this token.' }, 
-          status: :unprocessable_entity
+        token_collection = slot.convert_to_collection_ids(slot_params[:token_id]).first
+        
+        unless token_collection
+          record = slot.equipped_token || slot.build_equipped_token
+          record.errors.add(:token, 'is not owned by the player.')
+          raise ActiveRecord::RecordInvalid.new(record)
         end
-
-        #Only adds a token if there's a token present, can unequip a slot and no error will return
-        slot.create_equipped_token!(token_id: token.id) if token.present?
+  
+  
+        #Only adds a token if one is present
+        slot.create_equipped_token!(token_collection_id: token_collection&.id)
       end
     end
 

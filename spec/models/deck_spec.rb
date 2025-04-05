@@ -13,72 +13,88 @@ RSpec.describe Deck, type: :model do
     end
   end
 
-  let(:player) { create(:player) }
+  let!(:player) { create(:player) }
   let!(:deck) { player.deck }
 
-  describe "Validations" do
-    it "is valid with a name and a unique player_id" do
+  describe 'Validations' do
+    it 'is valid with a name and a unique player_id' do
       expect(deck).to be_valid
     end
 
-    it "is invalid without a name" do
+    it 'is invalid without a name' do
       deck.name = nil
       expect(deck).not_to be_valid
     end
 
-    it "does not allow a name longer than 25 characters" do
-      deck.name = "A" * 26
+    it 'does not allow a name longer than 25 characters' do
+      deck.name = 'A' * 26
       expect(deck).not_to be_valid
     end
 
-    it "does not allow multiple decks for the same player" do
+    it 'is invalid without a player' do
+      deck.player = nil
+      expect(deck).not_to be_valid
+    end
+
+    it 'does not allow multiple decks for the same player' do
       another_deck = build(:deck, player: player)
       expect(another_deck).not_to be_valid
     end
   end
 
-  describe "Associations" do
-    it "belongs to a player" do
+  describe '#validate_player_deck' do
+    it 'there is no error if there are 52 unique cards' do
+      expect(deck.cards.count).to be(52)
+      expect(deck).to be_valid
+    end
+
+    it 'ensures the deck does not go over 52 cards' do
+      card = create(:card)
+      player = create(:player)
+
+      collection = player.card_collections.create!(card: card)
+      equipped = EquippedCard.create(deck: deck, card_collection: collection)
+
+      expect(deck.reload).not_to be_valid
+      expect(deck.errors.full_messages).to include("deck must have exactly 52 cards.")
+    end
+
+    
+    it 'ensures the deck does not go under 52 cards' do
+      deck.equipped_cards.first.destroy
+
+      expect(deck.reload).not_to be_valid
+      expect(deck.errors.full_messages).to include("deck must have exactly 52 cards.")
+    end
+
+    it 'ensures no duplicate cards can be added' do
+      player = create(:player)
+      deck.equipped_cards.first.destroy!
+
+      collection = deck.equipped_cards.second.card_collection
+      expect { EquippedCard.create(deck: deck, card_collection: collection) }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
+  end
+
+  describe 'Associations' do
+    let(:card) { create(:card) }
+
+    it 'belongs to a player' do
       expect(deck.player).to eq(player)
     end
 
-    it "can have multiple cards through cards_in_deck" do
-      card1 = create(:card)
-      card2 = create(:card, effect: "Exhumed")
-      EquippedCard.create(deck: deck, card: card1)
-      EquippedCard.create(deck: deck, card: card2)
-
-      deck.reload
-      expect(deck.cards).to include(card1, card2)
+    it 'has many equipped cards and destroys association when deleted' do
+      expect(deck.equipped_cards.size).to eq(52)
+      expect { deck.destroy }.to change { EquippedCard.count }.by(-52)
     end
 
-    it "destroys associated cards_in_deck when deleted" do
-      card = create(:card)
-      EquippedCard.create(deck: deck, card: card)
-
-      expect(EquippedCard.count).to eq(53)
-
-      expect(deck).to be_invalid 
-      deck.destroy
-      expect(EquippedCard.count).to eq(0)
-    end
   end
 
-  describe "Callbacks" do
-    it "sets a default name on creation if none is provided" do
-      expect(deck.name).to eq("#{player.username}'s Deck")
-    end
-  end
-
-  describe "Custom Validations" do
-    it "ensures the deck has exactly 52 cards unless new" do
-      card = create(:card)
-      EquippedCard.create(deck: deck, card: card)
-
-      deck.reload
-
-      expect(deck.valid?).to be_falsey
-      expect(deck.errors.full_messages).to include("Deck must have exactly 52 cards.")
+  describe 'Instance Methods' do
+    describe '#set_default_name' do
+      it 'assigns the correct name' do
+        expect(deck.name).to eq("#{player.username}'s Deck")
+      end
     end
   end
 end

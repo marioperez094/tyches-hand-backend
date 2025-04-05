@@ -54,6 +54,27 @@ RSpec.describe "Api::V1::Decks", type: :request do
         )
       end
     end
+
+    it "returns an error if a player does not own some of the cards" do
+      new_cards = Card.by_effect("Exhumed")
+      
+      put "/api/v1/decks/update_cards", 
+        params: { deck: { cards: new_cards.map { |c| { id: c.id } } } }, 
+        headers: auth_header_for(player)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it 'returns an error if fewer than 52 cards are provided' do
+      new_cards = player.cards.take(50)
+      
+      put "/api/v1/decks/update_cards", 
+        params: { deck: { cards: new_cards.map { |c| { id: c.id } } } }, 
+        headers: auth_header_for(player)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
     it "updates cards successfully when exactly 52 cards are provided" do
       player.cards << exhumed_cards
 
@@ -65,28 +86,6 @@ RSpec.describe "Api::V1::Decks", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(deck.cards.count).to eq(52)
-    end
-
-    it "returns an error when fewer than 52 cards are provided" do
-      new_cards = Card.by_effect("Exhumed")
-
-      put "/api/v1/decks/update_cards",  
-        params: { deck: { cards: new_cards.take(50).map { |c| { id: c.id } } } },
-        headers: auth_header_for(player)
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(JSON.parse(response.body)["error"]).to eq("A deck must contain exactly 52 cards.")
-    end
-
-    it "returns an error if a player does not own some of the cards" do
-      new_cards = Card.by_effect("Exhumed")
-      
-      allow(player).to receive(:owns_card?).and_return(false)
-      put "/api/v1/decks/update_cards", 
-        params: { deck: { cards: new_cards.map { |c| { id: c.id } } } }, 
-        headers: auth_header_for(player)
-
-      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end

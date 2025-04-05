@@ -1,25 +1,27 @@
 class Daimon < ApplicationRecord
-  #Scopes
-  scope :by_unlocked, ->(player) { where("progression_level <= ?", player.lore_progression) }
+  include EffectTypes
+  
+  has_many :rounds, dependent: :destroy
 
-  #Constants
-  EFFECT_TYPES = %w[Damage Pot Heal Misc None].freeze
+  #Scopes
+  scope :by_unlocked, ->(player) { where("story_sequence <= ?", player.story_progression) }
 
   #Validations
   validates :name, presence: true, uniqueness: true
-  validates :rune, presence: true, uniqueness: true
-  validates :effect, presence: true, uniqueness: true
-  validates :effect_type, presence: true, inclusion: { in: EFFECT_TYPES }
-  validates :intro, :player_win, :player_lose, presence: true
-  validates :progression_level, presence: true, uniqueness: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :rune, uniqueness: true
+  validates :description, presence: true
+  validates :effect_type, presence: true, uniqueness: true, inclusion: { in: EffectTypes::EFFECT_ACTIONS.keys }
+  validates :intro, :player_win, :player_lose, :dialogue, presence: true
+  validates :story_sequence, presence: true, uniqueness: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :effect_values, effect_values_format: true
   
   #Retrieves the next Daimon based on the player's lore progression
-  def self.next_daimon(current_lore_progression)
-    find_by(progression_level: current_lore_progression)
+  def self.next_daimon(player_story_progression)
+    find_by(story_sequence: player_story_progression)
   end
 
-  #Returns a random taunt from the JSON array
-  def random_taunt
-    taunts.sample || "..."
+  #Returns a daimon dialogue line from the JSON array
+  def daimon_dialogue
+    dialogue.sample || "..."
   end
 end

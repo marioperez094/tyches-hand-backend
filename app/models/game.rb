@@ -1,51 +1,39 @@
 class Game < ApplicationRecord
-  #Associations
+  ### Associations
   belongs_to :player
-  has_many :rounds
+  has_one :round, dependent: :destroy
 
-  #Callbacks
-  after_create :start_first_round
-
-  #Constants
+  ### Constants
   enum :status, { in_progress: 0, lost: 1 }
 
-  #Validations
-  validates :story_daimon_progress, presence: true, numericality: { greater_than_or_equal_to: -1 }
-  validates :current_round, presence: true, numericality: { greater_than_or_equal_to: 1 }
-  validates :status, presence: true
-  validates :status_before_type_cast, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 1 }
+  ### Validations
+  
+  #Round stats
+  validates :daimon_progress, presence: true, numericality: { greater_than_or_equal_to: -1 }
+  validates :status, presence: true, inclusion: { in: statuses.keys }
 
-  validates :total_hands_won, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validates :total_hands_lost, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validates :win_streak, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validates :longest_win_streak, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  #Game stats
+  validates :rounds_played, :total_hands_won, :total_hands_lost, :win_streak, :longest_win_streak, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   validate :longest_win_streak_must_be_greater_or_equal
 
-  def start_first_round
-    rounds.create!(game: self, daimon: set_daimon)
-  end
-
-  def set_daimon
-    if self.story_daimon_progress == player.lore_progression
-      return Daimon.by_unlocked(player).sample
-    end
-    
-    advance_daimon
-    Daimon.next_daimon(player.lore_progression)
-  end
-  
+  ### Initial round setups
 
   #Increases story daimon progress if the player picks a lore token
   def advance_daimon
-    if player.lore_progression > story_daimon_progress
-      self.story_daimon_progress = player.lore_progression
-    end
-    save!
+    increment!(:daimon_progress) if player.story_progression > daimon_progress
   end
 
-   #Increments player hand wins and updates win streak
-   def record_hand_win
+  #Updates player and game stats
+  def update_round_stats
+    increment!(:rounds_played)
+    player.increment!(:games_played)
+  end
+
+  ### Hand stats
+
+  #Increments player hand wins and updates win streak
+  def record_hand_win
     increment!(:total_hands_won)
     increment!(:win_streak)
     self.longest_win_streak = [win_streak, longest_win_streak].max
@@ -59,9 +47,15 @@ class Game < ApplicationRecord
     save!
   end
 
+  def game_lost
+    update!(status: :lost)
+  end
+  
   private
 
   def longest_win_streak_must_be_greater_or_equal
+    return unless longest_win_streak && win_streak
+
     if longest_win_streak < win_streak
       errors.add(:longest_win_streak, 'must be greater than or equal to win_streak')
     end

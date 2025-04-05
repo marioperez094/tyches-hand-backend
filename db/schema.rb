@@ -12,8 +12,8 @@
 
 ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
   create_table "card_collections", force: :cascade do |t|
-    t.integer "player_id"
-    t.integer "card_id"
+    t.integer "player_id", null: false
+    t.integer "card_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["card_id"], name: "index_card_collections_on_card_id"
@@ -28,7 +28,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
     t.text "description", null: false
     t.string "effect", null: false
     t.string "effect_type", null: false
-    t.string "effect_description"
+    t.json "effect_values"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["effect"], name: "index_cards_on_effect"
@@ -38,14 +38,15 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
 
   create_table "daimons", force: :cascade do |t|
     t.string "name", null: false
-    t.string "rune", null: false
-    t.string "effect"
+    t.string "rune"
+    t.text "description"
+    t.integer "story_sequence", default: 0, null: false
     t.string "effect_type", null: false
-    t.integer "progression_level", default: 0, null: false
+    t.json "effect_values", default: {}
     t.text "intro", null: false
     t.text "player_win", null: false
     t.text "player_lose", null: false
-    t.json "taunts", default: []
+    t.json "dialogue", default: []
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
@@ -59,29 +60,30 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
   end
 
   create_table "equipped_cards", force: :cascade do |t|
-    t.integer "card_id"
-    t.integer "deck_id"
+    t.integer "deck_id", null: false
+    t.integer "card_collection_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["card_id", "deck_id"], name: "index_equipped_cards_on_card_id_and_deck_id", unique: true
-    t.index ["card_id"], name: "index_equipped_cards_on_card_id"
+    t.index ["card_collection_id", "deck_id"], name: "index_equipped_cards_on_card_collection_id_and_deck_id", unique: true
+    t.index ["card_collection_id"], name: "index_equipped_cards_on_card_collection_id"
     t.index ["deck_id"], name: "index_equipped_cards_on_deck_id"
   end
 
   create_table "equipped_tokens", force: :cascade do |t|
-    t.integer "token_id"
-    t.integer "slot_id"
+    t.integer "token_collection_id", null: false
+    t.integer "slot_id", null: false
+    t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["slot_id"], name: "index_equipped_tokens_on_slot_id"
-    t.index ["token_id", "slot_id"], name: "index_equipped_tokens_on_token_id_and_slot_id", unique: true
-    t.index ["token_id"], name: "index_equipped_tokens_on_token_id"
+    t.index ["token_collection_id", "slot_id"], name: "index_equipped_tokens_on_token_collection_id_and_slot_id", unique: true
+    t.index ["token_collection_id"], name: "index_equipped_tokens_on_token_collection_id"
   end
 
   create_table "games", force: :cascade do |t|
     t.integer "player_id", null: false
-    t.integer "story_daimon_progress", default: -1, null: false
-    t.integer "current_round", default: 1, null: false
+    t.integer "daimon_progress", default: -1, null: false
+    t.integer "rounds_played", default: 0, null: false
     t.integer "status", default: 0, null: false
     t.integer "total_hands_won", default: 0, null: false
     t.integer "total_hands_lost", default: 0, null: false
@@ -94,11 +96,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
 
   create_table "hands", force: :cascade do |t|
     t.integer "round_id", null: false
-    t.integer "hand_number", default: 1, null: false
     t.integer "blood_wager", default: 1000, null: false
     t.json "player_hand", default: []
     t.json "daimon_hand", default: []
-    t.integer "winner", default: 0, null: false
+    t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["round_id"], name: "index_hands_on_round_id"
@@ -110,10 +111,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
     t.boolean "is_guest", default: false, null: false
     t.boolean "tutorial_finished", default: false, null: false
     t.integer "blood_pool", default: 5000, null: false
-    t.integer "max_blood_pool", default: 5000, null: false
+    t.integer "story_progression", default: 0, null: false
     t.integer "max_daimon_health_reached", default: 0, null: false
     t.integer "max_round_reached", default: 0, null: false
-    t.integer "lore_progression", default: 0, null: false
+    t.integer "games_played", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["max_daimon_health_reached", "max_round_reached"], name: "index_players_on_max_daimon_health_and_round"
@@ -125,13 +126,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
   create_table "rounds", force: :cascade do |t|
     t.integer "game_id", null: false
     t.integer "daimon_id", null: false
-    t.integer "round_number", default: 1, null: false
-    t.integer "hand_counter", default: 1, null: false
+    t.integer "hands_played", default: 0, null: false
+    t.integer "card_count", default: 0, null: false
     t.json "shuffled_deck", default: []
     t.json "discard_pile", default: []
+    t.integer "player_max_blood_pool", default: 5000, null: false
     t.integer "daimon_max_blood_pool", null: false
-    t.integer "daimon_current_blood_pool", null: false
-    t.integer "winner", default: 0, null: false
+    t.integer "daimon_blood_pool", null: false
+    t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["daimon_id"], name: "index_rounds_on_daimon_id"
@@ -147,8 +149,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
   end
 
   create_table "token_collections", force: :cascade do |t|
-    t.integer "player_id"
-    t.integer "token_id"
+    t.integer "player_id", null: false
+    t.integer "token_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["player_id", "token_id"], name: "index_token_collections_on_player_id_and_token_id", unique: true
@@ -160,26 +162,27 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
     t.string "name", null: false
     t.string "rune", null: false
     t.text "description", null: false
-    t.string "effect_type", null: false
-    t.text "inscribed_effect", null: false
-    t.text "oathbound_effect", null: false
-    t.text "offering_effect", null: false
-    t.boolean "lore_token", default: false, null: false
-    t.integer "sequence_order"
+    t.string "inscribed_effect_type", null: false
+    t.json "inscribed_effect_values", default: {}
+    t.string "oathbound_effect_type", null: false
+    t.json "oathbound_effect_values", default: {}
+    t.string "offering_effect_type", null: false
+    t.json "offering_effect_values", default: {}
+    t.boolean "story_token", default: false, null: false
+    t.integer "story_sequence"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["effect_type"], name: "index_tokens_on_effect_type"
-    t.index ["lore_token"], name: "index_tokens_on_lore_token"
-    t.index ["sequence_order"], name: "index_tokens_on_sequence_order", unique: true, where: "lore_token = true"
+    t.index ["story_sequence"], name: "index_tokens_on_story_sequence", unique: true, where: "story_token = true"
+    t.index ["story_token"], name: "index_tokens_on_story_token"
   end
 
   add_foreign_key "card_collections", "cards", on_delete: :cascade
   add_foreign_key "card_collections", "players", on_delete: :cascade
   add_foreign_key "decks", "players", on_delete: :cascade
-  add_foreign_key "equipped_cards", "cards", on_delete: :cascade
+  add_foreign_key "equipped_cards", "card_collections", on_delete: :cascade
   add_foreign_key "equipped_cards", "decks", on_delete: :cascade
   add_foreign_key "equipped_tokens", "slots", on_delete: :cascade
-  add_foreign_key "equipped_tokens", "tokens", on_delete: :cascade
+  add_foreign_key "equipped_tokens", "token_collections", on_delete: :cascade
   add_foreign_key "games", "players", on_delete: :cascade
   add_foreign_key "hands", "rounds", on_delete: :cascade
   add_foreign_key "rounds", "daimons", on_delete: :cascade

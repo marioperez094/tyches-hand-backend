@@ -4,7 +4,7 @@ FactoryBot.define do
     password { 'password123' }
     password_confirmation { 'password123' }
     blood_pool { 5000 }
-    lore_progression { 0 }
+    story_progression { 0 }
     is_guest { false }
   end
 

@@ -1,172 +1,179 @@
 require 'rails_helper'
 
 RSpec.describe Hand, type: :model do
-  let!(:player) { create(:player, blood_pool: 5000) }
-  let!(:daimon) { create(:daimon, effect: 'None', progression_level: 0) }
-  let(:game) { create(:game, player: player) }
-  let(:round) { game.rounds.first }
-  let(:hand) { round.hands.first }
-  let!(:card_1) { create(:card, rank: "7", suit: "Hearts") }
-  let!(:card_2) { create(:card, rank: "9", suit: "Spades") }
-  let!(:ace_card) { create(:card, rank: "Ace", suit: "Diamonds") }
-
-  ### ✅ Validations
-  describe "Validations" do
-    it "is valid with all required attributes" do
-      expect(hand).to be_valid
-    end
-
-    it "is invalid without a hand_number" do
-      hand.hand_number = nil
-      expect(hand).not_to be_valid
+  let!(:standard_cards) do
+    Card::EFFECTS.each do |effect|
+      Card::SUITS.each do |suit|
+        Card::RANKS.each do |rank|
+          FactoryBot.create(:card, rank: rank, suit: suit, effect: effect)
+        end
+      end
     end
   end
 
-  ### ✅ Callbacks: `initialize_hand`
-  describe "Callbacks" do
-    it "initializes player and daimon hands correctly" do
-      new_hand = Hand.create!(round: round, hand_number: 1)
-      expect(new_hand.player_hand.size).to eq(2)
-      expect(new_hand.daimon_hand.size).to eq(1)
-    end
+  describe 'Validations' do
+    let!(:player) { create(:player) }
+    let!(:daimon) { create(:daimon) }
+    let!(:game) { create(:game, player: player) }
+    let!(:round) { game.round }
 
-    it "removes drawn cards from the deck" do
-      shuffled_deck = [card_1.id, card_2.id, ace_card.id, 4, 5, 6]
-      round.update!(shuffled_deck: shuffled_deck)
+    context 'basic attributes' do
+      it 'is valid with all attributes' do
+        hand = build(:hand, round: round)
+        expect(hand).to be_valid
+      end
 
-      new_hand = Hand.create!(round: round, hand_number: 1)
+      it 'is invalid without a blood wager' do
+        hand = build(:hand, round: round, blood_wager: nil)
+        expect(hand).not_to be_valid
+      end
 
-      expect(round.reload.shuffled_deck).not_to include(*new_hand.player_hand)
-      expect(round.reload.shuffled_deck).not_to include(*new_hand.daimon_hand)
-    end
-  end
+      it 'requires blood wager to be a number' do
+        hand = build(:hand, round: round, blood_wager: 's')
+        expect(hand).not_to be_valid
+      end
 
-  describe "initialize_hand" do
-    it "automatically deducts the correct wager when a hand is created" do
-      allow(round).to receive(:calculate_wager).and_return(500)
-  
-      expect { create(:hand, round: round, hand_number: 1) }
-        .to change { player.reload.blood_pool }.by(-500)
-        .and change { round.reload.daimon_current_blood_pool }.by(-500)
-    end
-  end
-  
+      it 'requires blood wager to not be negative' do
+        hand = build(:hand, round: round, blood_wager: -1)
+        expect(hand).not_to be_valid
+      end
 
-  ### ✅ Player Actions: `draw_player_card`
-  describe "#draw_player_card" do
-    it "draws a card and updates the deck" do
-      round.update!(shuffled_deck: [card_1.id, card_2.id, ace_card.id])
+      it 'is invalid without a status' do
+        hand = build(:hand, round: round, status: nil)
+        expect(hand).not_to be_valid
+      end
 
-      expect { hand.draw_player_card }
-        .to change { hand.reload.player_hand.size }.by(1)
-        .and change { round.reload.shuffled_deck.size }.by(-1)
-
-      expect(hand.player_hand).to include(card_1.id)
+      it 'is invalid with an incorrect status' do
+        hand = create(:hand, round: round)
+        expect { hand.status = :win }.to raise_error(ArgumentError)
+      end
     end
   end
 
-  ### ✅ Player Actions: `player_stand`
-  describe "#player_stand" do
-    it "draws Daimon cards until 17 or above" do
-      high_cards = [card_1.id, card_2.id, ace_card.id, card_1.id, card_2.id]
-      round.update!(shuffled_deck: high_cards)
-      
-      expect { hand.player_stand }
-      .to change { hand.reload.daimon_hand.size }
-      .from(1)
-      .to be >= 2
+  describe 'Associations' do
+    let!(:player) { create(:player) }
+    let!(:daimon) { create(:daimon) }
+    let!(:game) { create(:game, player: player) }
+    let!(:round) { game.round }
+    let!(:hand) { create(:hand, round: round) }
+
+    it 'belongs to a round' do
+      expect(hand.round).to eq(round)
     end
   end
 
-  ### ✅ Hand Resolution: `hand_resolution`
-  describe "#hand_resolution" do
-    it "correctly rewards player when they win" do
-      hand.update!(blood_wager: 1000)
-      player.blood_pool = 3000
+  describe 'Instance Methods' do
+    let!(:player) { create(:player) }
+    let!(:daimon) { create(:daimon) }
+    let!(:game) { create(:game, player: player) }
+    let!(:round) { game.round }
+    let!(:hand) { round.create_new_hand }
 
-      hand.hand_resolution(:player)
-      expect { hand.hand_resolution(:player) }
-        .to change { player.reload.blood_pool }.by(1000)
-        .and change { game.reload.total_hands_won }.by(1)
+    context '#draw_player_card' do
+      it 'draws a new card from the deck' do
+        expect(hand.player_hand.count).to eq(2)
 
-      expect(hand.winner).to eq("player")
+        new_card = hand.draw_player_card
+
+        expect(new_card.first[:card]).to eq(Card.find(281))
+
+        expect(hand.player_hand.count).to eq(3)
+        expect(hand.player_hand.third).to eq(281)
+      end
+
+      context 'player tutorial_finished = true' do
+        let!(:new_player) { create(:player, username: 'new_test', tutorial_finished: true)}
+        let!(:new_game) { create(:game, player: new_player) }
+        let!(:new_round) { new_game.round }
+        let!(:new_hand) { new_round.create_new_hand }
+        it 'reshuffles an empty deck on future draws' do
+          expect(new_round.shuffled_deck.count).to eq(49)
+
+          new_round.discard_pile = new_round.shuffled_deck
+          new_round.shuffled_deck = []
+
+          expect(new_round.shuffled_deck).to be_empty
+         
+          expect(new_hand.player_hand.count).to eq(2)
+          expect(new_hand.daimon_hand.count).to eq(1)
+
+          new_card = new_hand.draw_player_card
+
+          expect(new_player.equipped_cards).to include(new_card.first[:card])
+          expect(new_round.shuffled_deck.count).to eq(48)
+        end
+      end
     end
 
-    it "correctly rewards Daimon when it wins" do
-      hand.update!(blood_wager: 1000)
-      round.daimon_current_blood_pool = 1000
-      
-      expect { hand.hand_resolution(:daimon) }
-        .to change { round.daimon_current_blood_pool }.by(1000)
-        .and change { game.reload.total_hands_lost }.by(1)
+    context '#hand_total' do
+      it 'gives the total of the given hand' do
+        hand = [1, 2, 3]
+        cards = Hand.full_cards(hand)
+        expect(Hand.hand_total(cards)).to eq(9)
+      end
 
-      expect(hand.winner).to eq("daimon")
+      it 'converts face cards to numbered ranks' do
+        hand = [10, 11, 12]
+        cards = Hand.full_cards(hand)
+        expect(Hand.hand_total(cards)).to eq(30)
+      end
+
+      it 'converts aces to 11' do
+        hand = [12, 13]
+        cards = Hand.full_cards(hand)
+        expect(Hand.hand_total(cards)).to eq(21)
+      end
+
+      it 'converts aces to 1 if over 21' do
+        hand = [11, 12, 13]
+        cards = Hand.full_cards(hand)
+        expect(Hand.hand_total(cards)).to eq(21)
+      end
+
+      it 'converts one ace to 11 and one ace to 1' do
+        hand = [8, 13, 26]
+        cards = Hand.full_cards(hand)
+        expect(Hand.hand_total(cards)).to eq(21)
+      end
     end
 
-    it "correctly refunds in a push scenario" do
-      hand.update!(blood_wager: 1000)
+    context '#player_stand' do
+      it 'draws cards until total is at least 17' do
+        low_card_ids = [1, 4, 9, 10, 2, 3]
+        round.update!(shuffled_deck: low_card_ids)
+        hand.update!(daimon_hand: []) 
 
-      expect { hand.hand_resolution(:push) }
-        .to change { player.reload.blood_pool }.by(500)
-        .and change { round.reload.daimon_current_blood_pool }.by(500)
-        .and change { game.reload.total_hands_lost }.by(1)
 
-      expect(hand.winner).to eq("push")
-    end
-  end
-
-  ### ✅ Hand Logic: `hand_total`
-  describe "#hand_total" do
-    it "calculates total without Aces correctly" do
-      hand.player_hand = [card_1.id, card_2.id] # 7 + 9 = 16
-      expect(hand.hand_total(hand.player_hand)).to eq(16)
+        result = hand.player_stand
+        total = Hand.hand_total(hand.reload.daimon_hand)
+    
+        expect(total).to be >= 17
+        expect(total).to eq(17)
+        expect(result).to all(be_a(Card))
+      end
     end
 
-    it "calculates Aces as 11 when possible" do
-      hand.player_hand = [card_1.id, ace_card.id] # 7 + Ace = 18
-      expect(hand.hand_total(hand.player_hand)).to eq(18)
-    end
+    context '#player_hand_bust?' do
+      it 'returns false if the player hand is less than 21' do
+        player_hand = [1, 2]
+        hand.update!(player_hand: player_hand)
 
-    it "calculates Aces as 1 when necessary" do
-      hand.player_hand = [card_1.id, ace_card.id, card_2.id] # 7 + Ace + 9 = 17 (Ace as 1)
-      expect(hand.hand_total(hand.player_hand)).to eq(17)
-    end
-  end
+        expect(hand.player_hand_bust?).to eq(false)
+      end
 
-  ### ✅ Hand Logic: `hand_result?`
-  describe "#hand_result?" do
-    it "determines player win when Daimon busts" do
-      allow(hand).to receive(:hand_total).with(hand.player_hand).and_return(18) # ✅ Stub player hand total
-      allow(hand).to receive(:hand_total).with(hand.daimon_hand).and_return(22) # ✅ Stub Daimon bust
+      it 'returns false if the player hand is equal to 21' do
+        player_hand = [10, 13]
+        hand.update!(player_hand: player_hand)
 
-      expect(hand.hand_result?).to eq(:player)
-    end
+        expect(hand.player_hand_bust?).to eq(false)
+      end
 
-    it "determines Daimon win when it has a higher total" do
-      allow(hand).to receive(:hand_total).with(hand.player_hand).and_return(18)
-      allow(hand).to receive(:hand_total).with(hand.daimon_hand).and_return(19)
+      it 'returns true if the player hand is greater than 21' do
+        player_hand = [9, 10, 11]
+        hand.update!(player_hand: player_hand)
 
-      expect(hand.hand_result?).to eq(:daimon)
-    end
-
-    it "determines a push when totals are equal" do
-      allow(hand).to receive(:hand_total).with(hand.player_hand).and_return(20)
-      allow(hand).to receive(:hand_total).with(hand.daimon_hand).and_return(20)
-
-      expect(hand.hand_result?).to eq(:push)
-    end
-  end
-
-  ### ✅ Hand Logic: `player_hand_bust?`
-  describe "#player_hand_bust?" do
-    it "returns true if player busts" do
-      allow(hand).to receive(:hand_total).with(hand.player_hand).and_return(22)
-      expect(hand.player_hand_bust?).to be true
-    end
-
-    it "returns false if player is under 21" do
-      allow(hand).to receive(:hand_total).with(hand.player_hand).and_return(20)
-      expect(hand.player_hand_bust?).to be false
+        expect(hand.player_hand_bust?).to eq(true)
+      end
     end
   end
 end

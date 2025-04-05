@@ -1,13 +1,42 @@
 FactoryBot.define do
   factory :token do
-    name { 'Eye of Tyche' }
-    rune { 'Ω' }
-    description { 'Tyche takes mercy to give you the upper hand. Gain the ability to see what others cannot.' }
-    effect_type { 'Utility' }
-    inscribed_effect { 'Gain the ability to see the current card count to better suit your odds.' }
-    oathbound_effect { 'Know whether the next card count will increase or decrease the card count.' }
-    offering_effect { 'See the future by showing what card will be next in the deck.' }
-    lore_token { false }
-    sequence_order { nil }
+    name { 'Red Tearstone Token' }
+    rune { 'Θ' }
+    description { 'Tyche rewards those who dare play the odds - for a great wager deserves a great reward. But be certain you can withstand the cost.' }
+    inscribed_effect_type { 'damage_daimon_limit_health' }
+    inscribed_effect_values {{ 
+      'damage_daimon_with_difference' => {
+          'value' => -0.15,
+          'apply_on_phase' => 'hand_start'
+        },
+        'player_max_health' => {
+          'value' => 0.2,
+          'apply_on_phase' => 'round_start'
+        }
+    }}
+    oathbound_effect_type { 'damage_daimon_and_player' }
+    oathbound_effect_values {{ 
+      'daimon_health_on_hand' => {
+          'value' => 0.3,
+          'apply_on_phase' => 'hand_start'
+        },
+        'player_health_on_hand' => {
+          'value' => 0.3,
+          'apply_on_phase' => 'hand_start' 
+        }
+    }}
+    offering_effect_type { 'damage_daimon_and_player' }
+    offering_effect_values {{
+      'daimon_health_on_hand' => {
+          'value' => 0.3,
+          'apply_on_phase' => 'hand_start'
+        },
+        'player_health_on_hand' => {
+          'value' => 0.3,
+          'apply_on_phase' => 'hand_start' 
+        }
+    }}
+    story_token { false }
+    story_sequence { nil }
   end
 end

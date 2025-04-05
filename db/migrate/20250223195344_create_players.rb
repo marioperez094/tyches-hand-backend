@@ -1,15 +1,20 @@
 class CreatePlayers < ActiveRecord::Migration[7.2]
   def change
     create_table :players do |t|
+      #Player attributes
       t.string :username, null: false
       t.string :password_digest
       t.boolean :is_guest, default: false, null: false
+
+      #Game attributes
       t.boolean :tutorial_finished, default: false, null: false
       t.integer :blood_pool, default: 5000, null: false
-      t.integer :max_blood_pool, default: 5000, null: false
+      t.integer :story_progression, default: 0, null: false
+
+      #Game stats
       t.integer :max_daimon_health_reached, default: 0, null: false
       t.integer :max_round_reached, default: 0, null: false
-      t.integer :lore_progression, default: 0, null: false
+      t.integer :games_played, default: 0, null: false
 
       t.timestamps
     end
