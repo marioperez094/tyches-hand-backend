@@ -10,7 +10,7 @@ FactoryBot.define do
           'apply_on_phase' => 'hand_start'
         },
         'player_max_health' => {
-          'value' => 0.2,
+          'value' => 0.4,
           'apply_on_phase' => 'round_start'
         }
     }}

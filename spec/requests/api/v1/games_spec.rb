@@ -32,6 +32,7 @@ RSpec.describe "Api::V1::Games", type: :request do
   describe 'POST #create' do
     context 'game exists' do
       let!(:game) { create(:game, player: player) }
+      
       it 'does not create a new game if the player has a game in progress' do          
         post '/api/v1/games', headers: { 'Authorization' => token }
         expect(response).to have_http_status(:unprocessable_entity)

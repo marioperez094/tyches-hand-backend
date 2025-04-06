@@ -13,16 +13,12 @@ class GameStateManager
     return unless round
     player_health = player.blood_pool + amount
     player.blood_pool = player_health.clamp(0, round.player_max_blood_pool)
-
-    round.round_over?
   end
 
   def set_daimon_health(amount)
     return unless round
     daimon_health = round.daimon_blood_pool + amount
     round.daimon_blood_pool = daimon_health.clamp(0, round.daimon_max_blood_pool)
-
-    round.round_over?
   end
 
   def set_player_max_health(amount)
@@ -32,8 +28,6 @@ class GameStateManager
 
     round.player_max_blood_pool = new_max
     player.blood_pool = [player.blood_pool, new_max].min
-    
-    round.round_over?
   end
 
   def set_daimon_max_health(amount)

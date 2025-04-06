@@ -2,8 +2,9 @@ FactoryBot.define do
   factory :daimon do
     name { 'The Thrill' }
     effect_type { 'damage_player' }
-    effect_values {{ 'damage_player' => {
-      'value' => 0.5,
+    effect_values {{ 
+      'player_health' => {
+      'value' => -50,
       'apply_on_phase' => 'hand_start'
     }}}
     rune { 'Ω' }

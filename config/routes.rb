@@ -34,6 +34,10 @@ Rails.application.routes.draw do
       resources :games, only: [:create] do
         get 'show_player_stats', on: :collection, to: 'games#show_player_stats'
       end
+
+      #Hand Routes
+      resources :hands, only: [:create] do
+      end
     end
   end
 end

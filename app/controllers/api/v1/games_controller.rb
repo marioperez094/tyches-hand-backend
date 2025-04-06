@@ -3,7 +3,8 @@ class Api::V1::GamesController < ApplicationController
 
   def create
     if current_player.game&.in_progress?
-      return render json: { error: 'A game is already active.' }, status: :unprocessable_entity
+      return render json: { error: 'A game is already active.' }, 
+      status: :unprocessable_entity
     end
   
     @game = current_player.create_game!

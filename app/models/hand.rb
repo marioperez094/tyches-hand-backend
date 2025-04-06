@@ -9,6 +9,15 @@ class Hand < ApplicationRecord
   validates :blood_wager, presence: true, numericality: { greater_than_or_equal_to: 1 }
   validates :status, presence: true, inclusion: { in: statuses.keys }
 
+  ### Game Manager
+  def manager
+    GameStateManager.new(player: round.game.player, round: round, hand: self)
+  end
+  
+  def manager_persist_changes
+    manager.persist_changes(player: round.game.player, round: round, hand: self)
+  end
+
   #def player_doubles_down
     #player_hand = player_draw
     #deduct_wager = @hand.blood_wager / 2
@@ -58,7 +67,6 @@ class Hand < ApplicationRecord
     case hand_result
     when :won
       manager.set_player_health(blood_wager)
-      puts "#{ round.game.player.blood_pool }"
       round.game.record_hand_win
     when :lost
       manager.set_daimon_health(blood_wager)
@@ -110,15 +118,6 @@ class Hand < ApplicationRecord
   end
 
   private 
-  
-  ### Game Manager
-  def manager
-    GameStateManager.new(player: round.game.player, round: round, hand: self)
-  end
-
-  def manager_persist_changes
-      manager.persist_changes(player: round.game.player, round: round, hand: self)
-  end
 
   def discard_both_hands
     round.discard_pile += player_hand

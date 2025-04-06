@@ -49,7 +49,7 @@ module EffectTypeModifier
     #If value is less than 1 it is a percentile of daimon/player's total blood pool
     #If value is greater than 1, it is a percentage of the wager
     if value.between?(-1, 1)
-      base = player_target ? ctx[:player].max_blood_pool : ctx[:round].daimon_max_blood_pool
+      base = player_target ? round.player_max_blood_pool : round.daimon_max_blood_pool
     else
       base = (hand&.blood_wager.to_f / 100)
     end
@@ -61,7 +61,7 @@ module EffectTypeModifier
     amount = multiplier_source(ctx, player_target: true) || 0
 
     player_health = ctx[:manager].set_player_health(amount)
-    [{ effect: ctx[:action].to_s, result: "player_health = #{ player_health }"}]
+    [{action: 'set_player_health', player_blood_pool: player_health}]
   end
 
   def self.daimon_health(ctx)
@@ -69,7 +69,7 @@ module EffectTypeModifier
     amount = multiplier_source(ctx, player_target: false) || 0
 
     daimon_health = ctx[:manager].set_daimon_health(amount)
-    [{ effect: ctx[:action].to_s, result: "daimon_health = #{ daimon_health }"}]
+    [{action: 'set_daimon_health', daimon_blood_pool: daimon_health}]
   end
   
   def self.blood_wager(ctx)  
@@ -77,7 +77,7 @@ module EffectTypeModifier
     amount = multiplier_source(ctx, player_target: false) || 0
     
     blood_wager = ctx[:manager].set_blood_wager(amount)
-    [{ effect: ctx[:action].to_s, result: "blood_wager = #{ blood_wager }"}]
+    [{action: 'set_blood_wager', blood_wager: blood_wager}]
   end
 
   def self.player_max_health(ctx)
@@ -86,7 +86,7 @@ module EffectTypeModifier
     multiplier = ctx[:value].to_f
     
     player_max_health = ctx[:manager].set_player_max_health(multiplier)
-    [{ effect: ctx[:action].to_s, result: "player_max_health = #{ player_max_health }" }]
+    [{action: 'set_player_max_health', player_max_blood_pool: player_max_health}]
   end
   
 
@@ -96,7 +96,7 @@ module EffectTypeModifier
 
     multiplier = ctx[:value].to_f
     daimon_max_health = ctx[:manager].set_daimon_max_health(multiplier)
-    [{ effect: ctx[:action].to_s, result: "daimon_max_health = #{ daimon_max_health }"}]
+    [{action: 'set_daimon_max_health', daimon_max_blood_pool: daimon_max_health}]
   end
 
   #Submodifiers
@@ -113,6 +113,6 @@ module EffectTypeModifier
     amount = (total_damage * multiplier).to_i
     
     daimon_health = ctx[:manager].set_daimon_health(amount)
-    [{ effect: ctx[:action].to_s, result: "daimon_blood_pool = #{ round.daimon_blood_pool }"}]
+    [{action: 'set_daimon_health', daimon_blood_pool: daimon_health}]
   end
 end
