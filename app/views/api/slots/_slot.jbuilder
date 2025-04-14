@@ -5,4 +5,6 @@ if slot.token
   json.token do
     json.partial! 'api/tokens/token', token: slot.token
   end
+else
+  json.token      nil
 end

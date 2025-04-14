@@ -9,7 +9,7 @@ Rails.application.routes.draw do
         delete 'delete', on: :collection, to: 'players#destroy'
         delete 'logout', on: :collection, to: 'players#logout'
         get 'authenticated', on: :collection, to: 'players#authenticated'
-        get 'show', on: :collection, to: 'players#show'
+        get 'player_summary', on: :collection, to: 'players#player_summary'
         get 'leaderboard/rounds', on: :collection, to: 'players#index_leaderboard_by_rounds'
       end
       

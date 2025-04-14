@@ -100,15 +100,9 @@ class Api::V1::PlayersController < ApplicationController
     end
   end
 
-  def show
-    @include_deck_stats = params[:deck_stats] == 'true'
-    @include_deck_cards = params[:deck_cards] == 'true'
-    @include_collection_cards = params[:collection_cards] == 'true'
-    @include_collection_tokens = params[:collection_tokens] == 'true'
-    @include_slots = params[:slots] == 'true'
-
+  def player_summary
     @player = current_player
-    render 'api/players/show'
+    render 'api/players/player_summary'
   end
 
   def index_leaderboard_by_rounds

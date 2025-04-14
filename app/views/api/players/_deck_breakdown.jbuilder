@@ -1,4 +1,4 @@
-json.name            player.deck.name
+json.deck_name       player.deck.name
 json.Total           player.cards.count
 
 Card::EFFECTS.each do |effect|

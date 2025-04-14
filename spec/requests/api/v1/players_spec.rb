@@ -222,9 +222,9 @@ RSpec.describe 'Api::V1::Players', type: :request do
     end
   end
 
-  describe 'GET #show' do
+  describe 'GET #stats_summary' do
     it 'returns the current player details' do
-      get '/api/v1/players/show', headers: auth_header_for(player)
+      get '/api/v1/players/stats_summary', headers: auth_header_for(player)
       expect(response).to have_http_status(:ok)
 
       show_player = json_response['player']
@@ -232,6 +232,9 @@ RSpec.describe 'Api::V1::Players', type: :request do
       expect(show_player['blood_pool']).to eq(player.blood_pool)
       expect(show_player['is_guest']).to eq(player.is_guest)
       expect(show_player['tutorial_finished']).to eq(player.tutorial_finished)
+      expect(show_player['deck_breakdown']['Total']).to eq(player.assigned_cards.size)
+      expect(show_player['game_stats']['games_played']).to eq(0)
+      expect(show_player['slots'].first['slot_type']).to eq('Inscribed')
 
     end
   end
