@@ -2,23 +2,33 @@ class Api::V1::HandsController < ApplicationController
   before_action :set_hand, except: [:create]
 
   def create
-    if current_player.game&.round&.hand&.in_progress?
-      return render json: { error: 'A hand is already active.' }, 
+    game = current_player&.game
+    round = game&.round
+
+    unless round
+      return render json: { error: 'No round was found.' },
       status: :unprocessable_entity
     end
 
-    round = current_player.game&.round
+    @hands_played = round.hands_played
     hand_init = HandInitializer.new(round)
+    @hand = round.hand&.in_progress? ? round.hand : hand_init.build_new_hand
+    hand_service = HandService.new(@hand)
 
-    @hand = hand_init.build_new_hand
-    @hand_setup = hand_init.new_hand_compiler(@hand)
+    @wagered_health_statuses = hand_service.health_compiler
     @daimon_cards = @hand.daimon_hand_cards
-    
     player_cards = @hand.player_hand_cards
-    @player_card_effect = hand_init.apply_card_effects(@hand)
+    @player_card_effects = hand_service.apply_card_effects(player_cards)
+
+    @actions = hand_service.available_player_actions 
+    @health_statuses = nil
 
     if Hand.is_blackjack?(player_cards)
+      @daimon_cards =  hand_service.daimon_draws
+      result = @hand.hand_result?
       
+      @hand.hand_resolution(result)
+      @health_statuses = hand_service.health_compiler
     end
 
     @hand.manager_persist_changes
@@ -26,20 +36,70 @@ class Api::V1::HandsController < ApplicationController
     unless @hand.persisted?
       return render json: { error: 'Failed to create hand.' }, status: :unprocessable_entity
     end
-    
-    round.increment!(:hands_played)
 
     render 'api/hands/hand_setup'
   rescue ActiveRecord::RecordInvalid => e
     render json: { error: e.record.errors.full_messages }, status: :unprocessable_entity
   end
 
-  def player_draws
-    hand_action = HandActionService.new(@hand)
+  def player_hits
+    @player_hits = @hand_service.player_draws
+    @actions = @hand_service.available_player_actions
 
-    @player_draws = hand_action.player_draws
+    @health_statuses = @hand.player_hand_bust? ? @hand.hand_resolution(:lost) : nil
+    
+    @hand.manager_persist_changes
+    
+    render 'api/hands/player_hits'
+  end
 
-    render json: { player_draws: @player_draws }
+  def player_stands
+    @daimon_cards =  @hand_service.daimon_draws
+    result = @hand.hand_result?
+    
+    @hand.hand_resolution(result)
+    
+    @health_statuses = @hand_service.health_compiler
+
+    @hand.manager_persist_changes
+
+    render 'api/hands/player_stands'
+  end
+
+  def player_surrenders
+    deduct_wager = @hand.blood_wager / 4
+    @hand.manager.set_player_health(deduct_wager)
+    @hand.manager.set_blood_wager(-deduct_wager)
+
+    @hand.hand_resolution(:lost)
+
+    @health_statuses = @hand_service.health_compiler
+
+    @hand.manager_persist_changes
+
+    render 'api/hands/player_surrenders'
+  end
+
+  def player_doubles_down
+    deduct_wager = @hand.blood_wager / 2
+
+    @hand.manager.set_player_health(-deduct_wager)
+    @hand.manager.set_daimon_health(-deduct_wager)
+    @hand.manager.set_blood_wager(@hand.blood_wager)
+
+    @wagered_health_statuses = @hand_service.health_compiler
+
+    @player_hits = @hand_service.player_draws
+    @daimon_cards = @hand_service.daimon_draws
+
+    result = @hand.hand_result?
+    @resolve_hand = @hand.hand_resolution(result)
+
+    @health_statuses = @hand_service.health_compiler
+
+    @hand.manager_persist_changes
+
+    render 'api/hands/player_doubles_down'
   end
 
   private
@@ -48,9 +108,10 @@ class Api::V1::HandsController < ApplicationController
     game = current_player.game
     round = game&.round
     @hand = round&.hand
+    
+    return render json: { error: 'Hand not found.' }, 
+    status: :not_found unless @hand
 
-    unless @hand
-      render json: { error: 'Hand not found.' }, status: :not_found
-    end
+    @hand_service = HandService.new(@hand)
   end
 end

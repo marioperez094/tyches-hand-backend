@@ -23,6 +23,9 @@ class Player < ApplicationRecord
 
   has_one :game, dependent: :destroy
   
+  ### Variables
+  VALID_USERNAME_REGEX = /\A[a-zA-Z0-9_]+\z/
+
   ### Callbacks 
   before_validation :assign_guest_username, if: :guest?
   before_destroy :prevent_registered_player_deletion, unless: :force_delete?
@@ -36,18 +39,17 @@ class Player < ApplicationRecord
 
   ### Validations
   #Player
-  validates :username, presence: true, uniqueness: true, unless: :guest?
-  validates :password, confirmation: true, length: { minimum: 6 },
-            presence: true, on: [
-              :create, :update_password, :convert_to_registered, :destroy
-            ], unless: :guest?
+  validates :username, presence: true, uniqueness: true, length: { in: 3..20 }, format: { with: VALID_USERNAME_REGEX, message: 'cannot include spaces or symbols.'}, unless: :guest?
+  validates :password, confirmation: true, length: { minimum: 6 }, presence: true, on: [
+    :create, :update_password, :convert_to_registered, :destroy
+    ], unless: :guest?
   validates :password_confirmation, presence: true, on: [:create, :update_password, :destroy], unless: :guest?
   validates :is_guest, inclusion: { in: [true, false] }
 
   #Game
   validates :tutorial_finished, inclusion: { in: [true, false] }
-  validates :blood_pool, :max_daimon_health_reached, 
-            :max_round_reached, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :blood_pool, :max_daimon_health_reached, :max_round_reached, 
+    presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :story_progression, :games_played, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   attr_accessor :force_delete #Allows manual delition when explicitly request 
@@ -84,9 +86,6 @@ class Player < ApplicationRecord
       .left_outer_joins(:equipped_token)
       .where(equipped_tokens: { id: nil })
       .includes(:token).map(&:token)
-  end
-
-  def unequipped_tokens
   end
 
   private

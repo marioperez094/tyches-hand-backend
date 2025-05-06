@@ -43,10 +43,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
     t.integer "story_sequence", default: 0, null: false
     t.string "effect_type", null: false
     t.json "effect_values", default: {}
-    t.text "intro", null: false
-    t.text "player_win", null: false
-    t.text "player_lose", null: false
-    t.json "dialogue", default: []
+    t.json "intro", default: [], null: false
+    t.json "player_win", default: [], null: false
+    t.json "dialogue", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

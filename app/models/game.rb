@@ -13,7 +13,8 @@ class Game < ApplicationRecord
   validates :status, presence: true, inclusion: { in: statuses.keys }
 
   #Game stats
-  validates :rounds_played, :total_hands_won, :total_hands_lost, :win_streak, :longest_win_streak, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :rounds_played, :total_hands_won, :total_hands_lost, :win_streak, :longest_win_streak, 
+    presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   validate :longest_win_streak_must_be_greater_or_equal
 

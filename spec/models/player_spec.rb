@@ -22,6 +22,30 @@ RSpec.describe Player, type: :model do
         expect(duplicate_player).not_to be_valid
       end
 
+      it 'requires a username of at least 3 characters' do
+        player.username = '12'
+        expect(player).not_to be_valid
+        expect(player.errors[:username]).to include('is too short (minimum is 3 characters)')
+      end
+
+      it 'requires a username of at most 20 characters' do
+        player.username = 'c' * 21
+        expect(player).not_to be_valid
+        expect(player.errors[:username]).to include('is too long (maximum is 20 characters)')
+      end
+
+      it 'is invalid with a space in the username' do
+        player.username = '12345 6'
+        expect(player).not_to be_valid
+        expect(player.errors[:username]).to include('cannot include spaces or symbols.')
+      end
+
+      it 'is invalid with a symbol in the username' do
+        player.username = '123456!'
+        expect(player).not_to be_valid
+        expect(player.errors[:username]).to include('cannot include spaces or symbols.')
+      end
+
       it 'requires a password (unless guest)' do
         player.password = nil
         player.password_confirmation = nil
@@ -180,6 +204,7 @@ RSpec.describe Player, type: :model do
     let!(:guest) { create(:player, username: nil, password: nil, password_confirmation: nil, is_guest: true)}
     let!(:daimon) { create(:daimon, story_sequence: 0) }
     let!(:game) { create(:game, player: player) }
+    let!(:round) { RoundInitializer.new(game).call }
     let(:card) { create(:card) }
     let(:token) { create(:token) }
 

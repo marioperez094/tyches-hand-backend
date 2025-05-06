@@ -10,7 +10,7 @@ class RoundInitializer
   end
 
   def call
-    raise 'A round is already active.' if @game&.round&.in_progress?
+    return @game.round if @game&.round&.in_progress?
 
     initialize_round
   end
@@ -66,6 +66,9 @@ class RoundInitializer
   def initialize_round
     new_round = build_new_round
     apply_passive_effects
+    new_round.manager_persist_changes
+    @game.update_round_stats
+
     new_round
   end
 end

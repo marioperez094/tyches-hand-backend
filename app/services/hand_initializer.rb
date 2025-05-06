@@ -42,37 +42,6 @@ class HandInitializer
     token_logs + daimon_logs
   end
 
-  def apply_card_effects(hand)
-    cards = hand.player_hand_cards
-    card_logs = cards.flat_map do |card|
-      result = ApplyEffectService.apply_card_effect(
-        card: card,
-        player: @player,
-        round: @round,
-        hand: hand,
-        phase: 'hand_start'
-      )
-    end
-  end
-
-  def new_hand_compiler(hand)
-    hand_setup = [{
-      action: 'set_player_health',
-      source: 'wager',
-      player_blood_pool: @player.blood_pool
-    }, {
-      action: 'set_daimon_health',
-      source: 'wager',
-      daimon_blood_pool: @round.daimon_blood_pool
-    }, {
-      action: 'set_blood_wager',
-      source: 'wager',
-      blood_wager: hand.blood_wager
-    }] 
-    
-    hand_setup + apply_passive_effects(hand) 
-  end
-
   ### Blackjack Resolution
   def resolve_if_blackjack(hand)
     return unless Hand.is_blackjack?(hand.player_hand_cards)
@@ -95,11 +64,11 @@ class HandInitializer
     scaling = [@round.hands_played, 15].min
     
     #Round does not update rounds_played until after creation hence 3
-    total_wager = minimum_wager + (scaling - 3) * 409
+    total_wager = minimum_wager + (scaling - 4) * 409
 
     player_min_blood_pool = [@player.blood_pool - 1, minimum_wager].max
 
-    [player_min_blood_pool, total_wager].min * 2
+    [player_min_blood_pool, total_wager].min
   end
 
   def set_blood_wager

@@ -224,7 +224,7 @@ RSpec.describe 'Api::V1::Players', type: :request do
 
   describe 'GET #stats_summary' do
     it 'returns the current player details' do
-      get '/api/v1/players/stats_summary', headers: auth_header_for(player)
+      get '/api/v1/players/player_summary', headers: auth_header_for(player)
       expect(response).to have_http_status(:ok)
 
       show_player = json_response['player']

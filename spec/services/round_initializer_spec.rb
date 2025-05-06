@@ -33,6 +33,7 @@ RSpec.describe RoundInitializer do
 
       it 'gives the base daimon health' do
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.reload.round.daimon_max_blood_pool).to eq(2500)
       end
@@ -42,6 +43,7 @@ RSpec.describe RoundInitializer do
         slot.create_equipped_token!(token_collection: collection)
         
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.daimon_max_blood_pool).to eq((2500 * 0.8).to_i)
       end
@@ -56,6 +58,7 @@ RSpec.describe RoundInitializer do
 
       it 'gives double the daimon health' do
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.reload.round.daimon_max_blood_pool).to eq((2500 * 2).to_i)
       end
@@ -64,6 +67,7 @@ RSpec.describe RoundInitializer do
         collection = player.token_collections.find_by(token: inscribed_daimon_token)
         slot.create_equipped_token!(token_collection: collection)
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.daimon_max_blood_pool).to eq((2500 * 2 * 0.8).to_i)
       end
@@ -76,6 +80,7 @@ RSpec.describe RoundInitializer do
 
       it 'gives the base player health' do
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.player_max_blood_pool).to eq(5000)
       end
@@ -84,6 +89,7 @@ RSpec.describe RoundInitializer do
         collection = player.token_collections.find_by(token: inscribed_buff_token)
         slot.create_equipped_token!(token_collection: collection)
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.player_max_blood_pool).to eq((5000 + 1000).to_i)
       end
@@ -92,6 +98,7 @@ RSpec.describe RoundInitializer do
         collection = player.token_collections.find_by(token: inscribed_debuff_token)
         slot.create_equipped_token!(token_collection: collection)
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.player_max_blood_pool).to eq((5000 * 0.2).to_i)
       end
@@ -105,6 +112,7 @@ RSpec.describe RoundInitializer do
 
       it 'gives the base player health' do
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
         expect(game.round.player_max_blood_pool).to eq((5000 * 0.9).to_i)
       end
 
@@ -112,6 +120,7 @@ RSpec.describe RoundInitializer do
         collection = player.token_collections.find_by(token: inscribed_buff_token)
         slot.create_equipped_token!(token_collection: collection)
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.player_max_blood_pool).to eq(((5000 * 0.9) * 1.2).to_i)
       end
@@ -120,6 +129,7 @@ RSpec.describe RoundInitializer do
         collection = player.token_collections.find_by(token: inscribed_debuff_token)
         slot.create_equipped_token!(token_collection: collection)
         game = create(:game, player: player, rounds_played: 0, daimon_progress: 0)
+        subject(game)
 
         expect(game.round.player_max_blood_pool).to eq(((5000 * 0.9) * 0.2).to_i)
       end
@@ -171,9 +181,13 @@ RSpec.describe RoundInitializer do
   describe '#initialize_round' do
     let!(:daimon) { create(:daimon) }
     let!(:game) { create(:game, player: player, rounds_played: 0, daimon_progress: 0) }
-    let!(:round) { game.round }
+
+    before do
+      subject(game)
+    end
     
     context 'when round exists and winner is chosen' do
+      let!(:round) { game.round }
 
       it 'destroys the existing round and creates a new one' do
         expect(Round.count).to eq(1)
@@ -187,24 +201,17 @@ RSpec.describe RoundInitializer do
     end
 
     context 'when round exists and is in progress' do
+      let!(:round) { game.round }
+
       it 'does not destroy the existing round' do
         expect(Round.count).to eq(1)
 
-        expect{ subject(game) }.to raise_error('A round is already active.')
+        returned_round = subject(game)
+
+        expect{ subject(game) }.to change { Round.count }.by(0)
         expect(game.rounds_played).to eq(1)
         expect(game.reload.round).to eq(round)
-      end
-    end
-
-    context 'when game is lost and round is over' do
-      it 'does not create a new round' do
-        game.round.update!(status: :won)
-        game.update!(status: :lost)
-        
-        expect{ game.create_new_round }.to raise_error('Game must be in progress to start a new round.')
-
-        expect(game.reload.rounds_played).to eq(1)
-        expect(game.reload.round).to eq(round)
+        expect(returned_round).to eq(round)
       end
     end
   end

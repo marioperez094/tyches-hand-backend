@@ -89,49 +89,24 @@ RSpec.describe Game, type: :model do
     let!(:player) { create(:player) }
     let!(:daimon) { create(:daimon) }
     let!(:game) { create(:game, player: player) }
-    let!(:round) { game.round }
 
     it 'belongs to a player' do
       expect(game.player).to eq(player)
     end
 
     it 'has a round and destroys when deleted' do
+      round = RoundInitializer.new(game).call
+      round.manager_persist_changes
+      
       expect(game.round).to eq(round)
-      expect { game.destroy }.to change { Round.count }.by(-1)
+      game.destroy
+      expect(Round.count).to eq(0)
     end
   end
 
   describe 'Instance Methods' do
     let!(:player) { create(:player) }
     let!(:daimon) { create(:daimon) }
-    
-    context 'create_new_round' do
-      let!(:game) { create(:game, player: player) }
-      let!(:round) { game.round }
-      
-      it 'does not create a new round if the game has a round' do
-        expect { game.create_new_round }.to raise_error('A round is already active.')
-        expect(game.round.id).to eq(round.id)
-      end
-
-      it 'does not create a new round if the game is lost' do
-        round.update!(status: :won)
-        game.update!(status: :lost)
-
-        expect { game.create_new_round }.to raise_error('Game must be in progress to start a new round.')
-        expect(round.status).to eq('won')
-        expect(game.round.id).to eq(round.id)
-      end
-
-      it 'it creates a new round' do
-        round.update!(status: :won)
-        game.create_new_round
-        new_round = game.round
-
-        expect(new_round.id).to eq(2)
-        expect(new_round).not_to be(round)
-      end
-    end
 
     context '#advance_daimon' do
       let(:game) { create(:game, player: player) }
@@ -192,27 +167,6 @@ RSpec.describe Game, type: :model do
           expect(game.longest_win_streak).to eq(10000)
         end
       end
-
-      context 'create_new_round' do
-        it 'raises an error if the game is lost' do
-          game.update!(status: :lost)
-
-          expect { game.create_new_round }.to raise_error('Game must be in progress to start a new round.')
-        end
-
-        it 'raises an error if a round is active' do
-          expect { game.create_new_round }.to raise_error('A round is already active.')
-        end
-
-        it 'creates a new round' do
-          round_id = game.round.id
-          game.round.update!(status: :won)
-
-          expect { game.create_new_round }.to change { Round.count }.by(0)
-          expect(game.reload.rounds_played).to eq(2)
-          expect(game.round.id).not_to eq(round_id)
-        end
-      end
     end
   end
 
@@ -221,9 +175,11 @@ RSpec.describe Game, type: :model do
     let!(:daimon) { create(:daimon) }
     let!(:second_daimon) { create(:daimon, name: 'The Wire', rune: 'T', effect_type: 'increase_max_health', story_sequence: 1) }
     let(:game) { create(:game, player: player) }
-    let!(:old_round) { game.round || create(:round, game: game, daimon: daimon) }
 
     it 'destroys the old round and assigns the new round' do
+      old_round = RoundInitializer.new(game).call
+      old_round.manager_persist_changes
+      
       expect(game.round).to eq(old_round)
 
       old_round.destroy

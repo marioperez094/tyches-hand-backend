@@ -37,6 +37,10 @@ Rails.application.routes.draw do
 
       #Hand Routes
       resources :hands, only: [:create] do
+        put 'player_hits', on: :collection, to: 'hands#player_hits'
+        put 'player_stands', on: :collection, to: 'hands#player_stands'
+        put 'player_surrenders', on: :collection, to: 'hands#player_surrenders'
+        put 'player_doubles_down', on: :collection, to: 'hands#player_doubles_down'
       end
     end
   end

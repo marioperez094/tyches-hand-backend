@@ -17,14 +17,19 @@ RSpec.describe RoundDeckService, type: :service do
   let!(:player) { create(:player) }
   let!(:non_tut_player) { create(:player, tutorial_finished: true) }
   let(:game) { create(:game, player: player, rounds_played: 1) }
-  let(:round) { game.round }
   let(:card1) { create(:card, rank: 'Ace') }
   let(:card2) { create(:card, rank: '10') }
   let(:card3) { create(:card, rank: 'Jack') }
   let(:card4) { create(:card, rank: 'King') }
   let(:card5) { create(:card, rank: 'Ace', effect: "Blessed")}
 
+  before do
+    RoundInitializer.new(game).call
+  end
+
   describe "#shuffle_deck" do
+    let!(:round) { game.round }
+
     it "shuffles the deck and assigns it to the round with tutorial" do
       expect(player.equipped_cards.count).to eq(52)
       expect(round.shuffled_deck).not_to be_empty
@@ -33,7 +38,7 @@ RSpec.describe RoundDeckService, type: :service do
 
     it 'shuffles the deck and assigns it to the round with tutorial finished' do
       non_tut_game = Game.create!(player: non_tut_player, rounds_played: 1)
-      non_tut_round = non_tut_game.round
+      non_tut_round = RoundInitializer.new(non_tut_game).call
 
       expect(non_tut_player.equipped_cards.count).to eq(52)
       expect(non_tut_round.shuffled_deck.count).to eq(52)
@@ -41,7 +46,7 @@ RSpec.describe RoundDeckService, type: :service do
 
     it 'favors high cards in initial rounds' do
       non_tut_game = Game.create!(player: non_tut_player)
-      non_tut_game.reload.rounds_played
+      RoundInitializer.new(non_tut_game).call
 
       trials = 100
       high_card_counts = []
@@ -63,6 +68,7 @@ RSpec.describe RoundDeckService, type: :service do
 
     it 'decrease in favor in later rounds' do
       non_tut_game = Game.create!(player: non_tut_player, rounds_played: 3)
+      RoundInitializer.new(non_tut_game).call
 
       trials = 100
       high_card_counts = []
@@ -83,6 +89,7 @@ RSpec.describe RoundDeckService, type: :service do
 
     it 'has no bias in rounds after 5' do
       non_tut_game = Game.create!(player: non_tut_player, rounds_played: 4)
+      RoundInitializer.new(non_tut_game).call
 
       trials = 100
       high_card_counts = []
@@ -99,26 +106,6 @@ RSpec.describe RoundDeckService, type: :service do
       average_high_cards = high_card_counts.sum.to_f / trials
       puts "#{ average_high_cards }"
       expect(average_high_cards).to be < 4
-    end
-  end
-
-  describe "#reshuffle_if_empty" do
-    before do
-      card1 = Card.first
-      card2 = Card.second
-      round.update_columns(shuffled_deck: [], discard_pile: [card1.id, card2.id])
-    end
-    
-    it 'does not reshuffle if shuffled_deck is not empty' do
-      round.update_columns(shuffled_deck: [card1.id, card2.id])
-      round.reshuffle_if_empty
-      expect(round.shuffled_deck.count).to eq(2)
-    end
-
-    it "reshuffles discard pile into deck when deck is empty" do
-      round.reshuffle_if_empty
-      expect(round.shuffled_deck.count).to eq(52)
-      expect(round.discard_pile).to be_empty
     end
   end
 end

@@ -6,49 +6,58 @@ class GameStateManager
     @game = player&.game
     @round = round || game&.round
     @hand = hand || round&.hand
+
+    @player_changes = {}
+    @round_changes = {}
+    @hand_changes = {}
   end
 
   ### Setters
-  def set_player_health(amount)
+  def adjust_player_health(amount)
     return unless round
     player_health = player.blood_pool + amount
-    player.blood_pool = player_health.clamp(0, round.player_max_blood_pool)
+    clamped = player_health.clamp(0, round.player_max_blood_pool)
+    @player_changes[:blood_pool] = clamped
   end
 
   def set_daimon_health(amount)
     return unless round
     daimon_health = round.daimon_blood_pool + amount
-    round.daimon_blood_pool = daimon_health.clamp(0, round.daimon_max_blood_pool)
+    clamped = daimon_health.clamp(0, round.daimon_max_blood_pool)
+    @round_changes[:daimon_blood_pool] = clamped
   end
 
   def set_player_max_health(amount)
     return unless round
-
-    new_max = (round.player_max_blood_pool * amount).to_i
-
-    round.player_max_blood_pool = new_max
-    player.blood_pool = [player.blood_pool, new_max].min
+    current = (round.player_max_blood_pool + amount).to_i
+    @round_changes[:player_max_blood_pool] = current
+    @player_changes[:blood_pool] = [player.blood_pool, current].min
   end
 
   def set_daimon_max_health(amount)
     return unless round
-
-    new_max = (round.daimon_max_blood_pool * amount).to_i
-
-    round.daimon_max_blood_pool = new_max
-    round.daimon_blood_pool = [round.daimon_blood_pool, new_max].min
+    current = (round.daimon_max_blood_pool * amount).to_i
+    @round_changes[:daimon_max_blood_pool] = current
+    @round_changes[:daimon_blood_pool] = [round.daimon_blood_pool, current].min
   end
 
   def set_blood_wager(amount)
     return unless hand
-
-    hand.blood_wager += amount
+    current = hand.blood_wager + amount
+    @hand_changes[:blood_wager] = current
   end
 
   def set_shuffled_deck(deck)
     return unless round
 
     round.shuffled_deck = deck
+  end
+
+  def draw_card(target)
+    return unless hand
+
+    card = round.shuffled_deck[0..0]
+    
   end
 
   def set_player_hand(amount)

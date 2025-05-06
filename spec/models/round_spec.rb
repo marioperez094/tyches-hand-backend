@@ -5,9 +5,14 @@ RSpec.describe Round, type: :model do
     let!(:player) { create(:player) }
     let!(:daimon) { create(:daimon) }
     let!(:game) { create(:game, player: player) }
-    let(:round) { game.round }
+
+    before do
+      round = RoundInitializer.new(game).call
+    end
 
     context 'basic attributes' do
+      let!(:round) { game.round }
+
       it 'is valid with all attributes' do
         expect(round).to be_valid
       end
@@ -29,6 +34,8 @@ RSpec.describe Round, type: :model do
     end
 
     context 'numeric fields' do
+      let!(:round) { game.round }
+
       [
         :card_count,
         :hands_played,
@@ -61,18 +68,26 @@ RSpec.describe Round, type: :model do
     let!(:player) { create(:player) }
     let!(:daimon) { create(:daimon) }
     let!(:game) { create(:game, player: player) }
-    let!(:round) { game.round }
-    let!(:hand) { create(:hand, round: round) }
+
+    before do
+      round = RoundInitializer.new(game).call
+    end
 
     it 'belongs to a game' do
+      round = game.round
       expect(round.game).to eq(game)
     end
 
     it 'belongs to a daimon' do
+      round = game.round
       expect(round.daimon).to eq(daimon)
     end
 
     it 'has a hand and destroys when deleted' do
+      round = game.round
+      hand = HandInitializer.new(round).build_new_hand
+      hand.manager_persist_changes
+
       expect(round.hand).to eq(hand)
       expect{ round.destroy }.to change { Hand.count }.by(-1)
     end
@@ -94,9 +109,13 @@ RSpec.describe Round, type: :model do
     let!(:player) { create(:player, tutorial_finished: true) }
     let!(:daimon) { create(:daimon) }
     let!(:game){ create(:game, player: player) }
-    let!(:round){ game.round }
+    
+    before do
+      RoundInitializer.new(game).call
+    end
 
     context '#shuffle_deck_on_create' do
+      let!(:round) { game.round }
       let!(:new_round) { game.build_round(
         daimon: daimon,
         daimon_blood_pool: 1,
@@ -125,6 +144,8 @@ RSpec.describe Round, type: :model do
     end
 
     context '#reshuffle_if_empty' do
+      let!(:round) { game.round }
+      
       it 'reshuffles an empty shuffled deck' do
         original_deck = round.shuffled_deck
         round.shuffled_deck = []

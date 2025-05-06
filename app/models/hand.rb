@@ -6,7 +6,7 @@ class Hand < ApplicationRecord
   enum :status, { in_progress: 0, won: 1, lost: 2, pushed: 3 }
 
   #Validations
-  validates :blood_wager, presence: true, numericality: { greater_than_or_equal_to: 1 }
+  validates :blood_wager, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :status, presence: true, inclusion: { in: statuses.keys }
 
   ### Game Manager
@@ -18,22 +18,7 @@ class Hand < ApplicationRecord
     manager.persist_changes(player: round.game.player, round: round, hand: self)
   end
 
-  #def player_doubles_down
-    #player_hand = player_draw
-    #deduct_wager = @hand.blood_wager / 2
-
-    #manager.set_player_health(-deduct_wager)
-    #manager.set_daimon_health(-deduct_wager)
-    #manager.set_blood_wager(blood_wager)
-
-    #Player actions stop after doubling down 
-    #player_stand
-
-    #Returns result from drawing a new hand
-    #player_hand
-  #end
-
-  ### Cards
+  ### Caching cards
   def player_hand_cards(force: false)
     @player_hand_cards = nil if force
     @player_hand_cards ||= Hand.full_cards(player_hand)
@@ -44,7 +29,7 @@ class Hand < ApplicationRecord
     @daimon_hand_cards ||= Hand.full_cards(daimon_hand)
   end
 
-  #Hand Complete
+  #Complete hand
   def hand_result?
     player_total = Hand.hand_total(player_hand_cards)
     daimon_total = Hand.hand_total(daimon_hand_cards)
@@ -78,12 +63,12 @@ class Hand < ApplicationRecord
       round.game.record_hand_loss
     end
     
+    round.increment!(:hands_played)
+    self.blood_wager = 0
     self.status = hand_result
     discard_both_hands
-    manager_persist_changes
   end
-
-  #Helper methods 
+ 
   def self.hand_total(cards)
     face_card_values = { 'Jack' => 10, 'King' => 10, 'Queen' => 10 }
 
@@ -110,6 +95,10 @@ class Hand < ApplicationRecord
 
   def self.is_blackjack?(cards)
     Hand.hand_total(cards) == 21 && cards.count == 2
+  end
+
+  def player_hand_bust?
+    Hand.hand_total(player_hand_cards) > 21
   end
 
   #Converts IDs to Card objects

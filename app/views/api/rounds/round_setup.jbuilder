@@ -15,7 +15,8 @@ end
 
 json.daimon do
   json.partial! 'api/daimons/daimon', daimon: daimon
-  json.blood_pool   round.daimon_blood_pool
+  json.dialogue            round.daimon.intro
+  json.blood_pool          round.daimon_blood_pool
   json.max_blood_pool      round.daimon_max_blood_pool
 end
 

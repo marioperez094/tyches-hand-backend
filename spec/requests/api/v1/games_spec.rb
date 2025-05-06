@@ -14,16 +14,20 @@ RSpec.describe "Api::V1::Games", type: :request do
         'id' => slot.id,
         'slot_type' => slot.slot_type
       }
-  
-      if slot.equipped_token&.token_collection&.token
-        token = slot.equipped_token.token_collection.token
-        slot_hash['token'] = {
-          'id' => token.id,
-          'name' => token.name,
+
+      token = slot&.token
+
+      slot_hash['token'] = if token
+        {
+          'id'          => token.id,
+          'name'        => token.name,
           'description' => token.description,
-          'rune' => token.rune
+          'rune'        => token.rune
         }
+      else
+        nil
       end
+      
   
       slot_hash
     end
@@ -35,8 +39,27 @@ RSpec.describe "Api::V1::Games", type: :request do
       
       it 'does not create a new game if the player has a game in progress' do          
         post '/api/v1/games', headers: { 'Authorization' => token }
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.parsed_body['error']).to eq('A game is already active.')
+        
+        expect(player.reload.game.id).to eq(1)  
+        expect(player.reload.games_played).to eq(1)
+        expect(Round.count).to eq(1)
+
+        show_game = json_response
+        expect(show_game['daimon']['name']).to eq(game.round.daimon.name)
+        expect(show_game['daimon']['blood_pool']).to eq(game.round.daimon_blood_pool)
+        expect(show_game['daimon']['effect_type']).to eq(game.round.daimon.effect_type)
+        expect(show_game['daimon']['intro']).to eq(game.round.daimon.intro)
+        expect(show_game['daimon']['max_blood_pool']).to eq(game.round.daimon_max_blood_pool)
+        expect(show_game['daimon']['rune']).to eq(game.round.daimon.rune)
+
+        expect(show_game['player']['username']).to eq(player.username)
+        expect(show_game['player']['blood_pool']).to eq(player.reload.blood_pool)
+        expect(show_game['player']['games_played']).to eq(player.games_played)
+        expect(show_game['player']['max_blood_pool']).to eq(game.round.player_max_blood_pool)
+        expect(show_game['player']['slots']).to eq(player_slots)
+        expect(show_game['player']['tutorial_finished']).to eq(player.tutorial_finished)
+
+        expect(show_game['round']['status']).to eq('in_progress')
       end
       
       it 'creates a new game with a new round if the player has lost the previous game' do
@@ -53,7 +76,7 @@ RSpec.describe "Api::V1::Games", type: :request do
         expect(show_game['daimon']['name']).to eq(player.game.round.daimon.name)
         expect(show_game['daimon']['blood_pool']).to eq(player.game.round.daimon_blood_pool)
         expect(show_game['daimon']['effect_type']).to eq(player.game.round.daimon.effect_type)
-        expect(show_game['daimon']['intro']).to include(player.game.round.daimon.intro)
+        expect(show_game['daimon']['intro']).to eq(player.game.round.daimon.intro)
         expect(show_game['daimon']['max_blood_pool']).to eq(player.game.round.daimon_max_blood_pool)
         expect(show_game['daimon']['rune']).to eq(player.game.round.daimon.rune)
 
@@ -86,7 +109,7 @@ RSpec.describe "Api::V1::Games", type: :request do
         expect(show_game['daimon']['name']).to eq(player.game.round.daimon.name)
         expect(show_game['daimon']['blood_pool']).to eq(player.game.round.daimon_blood_pool)
         expect(show_game['daimon']['effect_type']).to eq(player.game.round.daimon.effect_type)
-        expect(show_game['daimon']['intro']).to include(player.game.round.daimon.intro)
+        expect(show_game['daimon']['intro']).to eq(player.game.round.daimon.intro)
         expect(show_game['daimon']['max_blood_pool']).to eq(player.game.round.daimon_max_blood_pool)
         expect(show_game['daimon']['rune']).to eq(player.game.round.daimon.rune)
 

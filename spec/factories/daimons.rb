@@ -10,7 +10,7 @@ FactoryBot.define do
     rune { 'Ω' }
     description { 'The thrill doesn not care if it wins or lose, it just looks for the excitement.' }
 
-    intro { "Do you feel it? The excitement of the game, the height of the stakes, it's thrilling don't you think?" }
+    intro { ["Do you feel it?", "The Thrill of the stakes?"] }
     player_win { "You may have won, but doesn't change how thrilling this was." }
     player_lose { "Seems like the thrill was too much." }
     

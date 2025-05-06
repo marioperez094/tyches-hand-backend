@@ -72,7 +72,12 @@ RSpec.describe Daimon, type: :model do
     let!(:game) { create(:game, player: player) }
 
     it 'has many rounds and deletes it when destroyed' do
+      round = RoundInitializer.new(game).call
+      round.manager_persist_changes
+      expect(round.id).to eq(1)
+      
       expect(game.round.daimon).to eq(daimon)
+      
       expect{ daimon.destroy }.to change { Round.count }.by(-1)
     end
   end

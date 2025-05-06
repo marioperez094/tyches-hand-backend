@@ -10,12 +10,11 @@ class CreateDaimons < ActiveRecord::Migration[7.2]
       t.column :effect_values, :jsonb, default: {}
 
       #Single dialogue lines
-      t.text :intro, null: false                                #Introductin of the daimon 
-      t.text :player_win, null: false                           #Line if the player wins the round
-      t.text :player_lose, null: false                          #Line if the player loses the round
+      t.json :intro, default: [], null: false                                #Introductin of the daimon 
+      t.json :player_win, default: [], null: false                           #Line if the player wins the round
 
       #JSON for in game dialogue
-      t.json :dialogue, default: []
+      t.column :dialogue, :jsonb, default: {}
 
       t.timestamps
     end
