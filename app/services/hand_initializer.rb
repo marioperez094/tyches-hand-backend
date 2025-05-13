@@ -4,44 +4,40 @@ class HandInitializer
     @daimon = @round.daimon
     @game = @round.game
     @player = @game.player
-    @manager = GameStateManager.new(player: @player)
   end
+
+  def start_hand!
+    return @round.hand if @round&.hand&.in_progress?
+    hand = @round.build_hand
+  end
+
+  def build_new_hand
+    return @round.hand if @round.hand&.in_progress
+
+    @round.build_hand
+  end
+
 
   #New hand
-  def build_new_hand
-    wager = set_blood_wager
-    player_hand = @round.shuffled_deck[0..1]               #Player gets two cards
-    daimon_hand = @round.shuffled_deck[2..2]               #Daimon has one card but a hidden second card
-    @round.shuffled_deck = @round.shuffled_deck[3..] || [] #Altered deck after cards are removed
-
-    @round.build_hand(
-      blood_wager: wager,
-      player_hand: player_hand,
-      daimon_hand: daimon_hand
-    )
-  end
-  
-  ### Apply buffs and debuffs
-  def apply_passive_effects(hand)
-    token_logs = ApplyEffectService.apply_token_effects(
-      slot: @player.inscribed_slot,
-      player: @player,
-      round: @round,
-      hand: hand,
-      phase: 'hand_start'
-    )
-  
-    daimon_logs = ApplyEffectService.apply_daimon_effects(
-      daimon: @daimon,
-      player: @player,
-      round: @round,
-      hand: hand,
-      phase: 'hand_start'
-    )
+  #def build_new_hand
+   # @hand || = round.build_hand(
+    #  player_hand: [],
+     # daimon_hand: []
+    #)
     
-    token_logs + daimon_logs
-  end
+    #wager = set_blood_wager
+    #player_hand = @round.shuffled_deck[0..1]               #Player gets two cards
+    #daimon_hand = @round.shuffled_deck[2..2]               #Daimon has one card but a hidden second card
+    #@round.shuffled_deck = @round.shuffled_deck[3..] || [] #Altered deck after cards are removed
 
+    #@round.build_hand(
+     # blood_wager: wager,
+      #player_hand: player_hand,
+      #daimon_hand: daimon_hand
+    #)
+  #end
+  
+  
   ### Blackjack Resolution
   def resolve_if_blackjack(hand)
     return unless Hand.is_blackjack?(hand.player_hand_cards)

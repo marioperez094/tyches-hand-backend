@@ -19,11 +19,7 @@ class Round < ApplicationRecord
   
   #Game Manager
   def manager
-    GameStateManager.new(player: game.player, round: self, hand: self&.hand)
-  end
-
-  def manager_persist_changes
-      manager.persist_changes(player: game.player, round: self, hand: self&.hand)
+    GameStateManager.new(player: game.player, round: self)
   end
 
   #Reshuffles if shuffled deck is empty
@@ -34,12 +30,29 @@ class Round < ApplicationRecord
     save!
   end
 
+  def tyches_wrath_active?
+    hands_played > 4
+  end
+
   def round_over?
     return false unless game.player.blood_pool <= 0 || daimon_blood_pool <= 0
   
     update!(status: game.player.blood_pool <= 0 ? :lost : :won)
     game.game_lost if self.lost?
     true
+  end
+
+  def hand_setup_dialogue
+    hand_dialogue =
+      daimon.dialogue.dig("tyches_wrath") if tyches_wrath_active?
+  
+    hand_dialogue ||=
+      daimon.dialogue.dig("hand_count", hands_played.to_s)
+  
+    hand_dialogue ||=
+      daimon.dialogue.dig("player_blackjack") if Hand.is_blackjack?(hand&.player_hand_cards)
+
+    hand_dialogue
   end
 
   private 

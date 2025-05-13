@@ -95,7 +95,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_03_16_204512) do
 
   create_table "hands", force: :cascade do |t|
     t.integer "round_id", null: false
-    t.integer "blood_wager", default: 1000, null: false
+    t.integer "blood_wager", default: 0, null: false
     t.json "player_hand", default: []
     t.json "daimon_hand", default: []
     t.integer "status", default: 0, null: false

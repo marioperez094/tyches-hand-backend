@@ -10,7 +10,7 @@ class RoundInitializer
   end
 
   def call
-    return @game.round if @game&.round&.in_progress?
+    return @game.round if round_in_progress?
 
     initialize_round
   end
@@ -31,24 +31,8 @@ class RoundInitializer
   def set_daimon
     return Daimon.by_unlocked(@player).sample if @game.daimon_progress == @player.story_progression
       
-    #If the player has chosen a token the story progression will be greater. This will lead to a new Daimon
+    #If the player has chosen a lore token the story progression will be greater. This will lead to a new Daimon
     Daimon.next_daimon(@player.story_progression)
-  end
-
-  def apply_passive_effects
-    ApplyEffectService.apply_token_effects(
-      slot: @player.inscribed_slot,
-      player: @player,
-      round: @game.round,
-      phase: 'round_start'
-    )
-
-    ApplyEffectService.apply_daimon_effects(
-      daimon: @game.round.daimon,
-      player: @player,
-      round: @game.round,
-      phase: 'round_start'
-    )
   end
   
   def build_new_round
@@ -65,9 +49,7 @@ class RoundInitializer
 
   def initialize_round
     new_round = build_new_round
-    apply_passive_effects
-    new_round.manager_persist_changes
-    @game.update_round_stats
+    @game.increment(:rounds_played)
 
     new_round
   end

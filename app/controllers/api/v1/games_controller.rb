@@ -2,8 +2,10 @@ class Api::V1::GamesController < ApplicationController
   before_action :set_game, except: [:create]
 
   def create
-    @game = current_player.game&.in_progress? ? current_player.game : current_player.create_game!
+    @game = current_player.game&.in_progress? ? current_player.game : create_game
     round = RoundInitializer.new(@game).call
+    
+    round.manager.persist!
 
     render 'api/rounds/round_setup'
   rescue ActiveRecord::RecordInvalid => e
@@ -16,6 +18,13 @@ class Api::V1::GamesController < ApplicationController
   #end
 
   private
+
+  def create_game
+    game = current_player.create_game!
+    current_player.games_played += 1
+    
+    game 
+  end
 
   def set_game
     @game = current_player.game

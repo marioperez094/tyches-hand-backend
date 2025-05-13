@@ -14,10 +14,6 @@ class Hand < ApplicationRecord
     GameStateManager.new(player: round.game.player, round: round, hand: self)
   end
   
-  def manager_persist_changes
-    manager.persist_changes(player: round.game.player, round: round, hand: self)
-  end
-
   ### Caching cards
   def player_hand_cards(force: false)
     @player_hand_cards = nil if force

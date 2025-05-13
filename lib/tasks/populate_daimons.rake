@@ -18,13 +18,9 @@ namespace :daimons do
       ],
       player_win: 'I hope this was enjoyable and you will want to keep playing.',
       dialogue: {
-        "wager": {
-          "0": [
-            "Oh spare me...that drop was merely pocket change. Your crimson account still overflows."
-          ]
-        },
         "hand_count": {
           "0": [
+            "Oh spare me...that drop was merely pocket change. Your crimson account still overflows.",
             "This game will be delightfully simple for a mind as keen as yours.",
             "Edge as close to twenty-one as luck permits, surpass it and the hand is yours no more.",
             "Your total of twelve against my seven...the goddess of Fortune beckons you to draw."

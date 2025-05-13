@@ -1,21 +1,24 @@
-json.wagered_health_statuses           @wagered_health_statuses
+round = @hand.round
+player = round.game.player
+daimon = round.daimon
+
+json.player_health                      player.blood_pool
+json.daimon_health                      round.daimon_blood_pool
+json.blood_wager                        @hand.blood_wager
 
 json.player_cards do
-  json.array! @player_card_effects do |card|
-    json.partial! 'api/hands/player_card', player_card: card
-  end
-end
-
-json.daimon_cards do
-  json.array! @daimon_cards do |card|
+  json.array! @hand.player_hand_cards do |card|
     json.partial! 'api/cards/card', card: card
   end
 end
 
+json.daimon_cards do
+  json.array! @hand.daimon_hand_cards do |card|
+    json.partial! 'api/cards/card', card: card
+  end
+end
 
-json.wager_dialogue                    @hand.round.daimon.dialogue.dig("wager", @hands_played.to_s)
-json.hand_dialogue                     @hand.round.daimon.dialogue.dig("hand_count", @hands_played.to_s)
-json.hands_played                      @hands_played
-json.tyches_wrath                      @hands_played > 4
-json.available_actions                 @actions
-json.health_statuses                   @health_statuses
+json.hands_played                      round.hands_played
+json.tyches_wrath                      round.tyches_wrath_active?
+json.dialogue                          round.hand_setup_dialogue
+json.player_actions                    @hand_service.available_player_actions

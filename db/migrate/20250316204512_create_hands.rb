@@ -2,7 +2,7 @@ class CreateHands < ActiveRecord::Migration[7.2]
   def change
     create_table :hands do |t|
       t.references :round, null: false, index: true, foreign_key: { on_delete: :cascade }
-      t.integer :blood_wager, null: false, default: 1000      #The total wager amount given by the player and daimon
+      t.integer :blood_wager, null: false, default: 0      #The total wager amount given by the player and daimon
 
       #Hands
       t.column :player_hand, :jsonb, default: []
