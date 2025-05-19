@@ -50,7 +50,7 @@ end
 gem "rspec-rails", "~> 7.1"
 gem "factory_bot_rails", "~> 6.4"
 
-gem "rack-cors", "~> 2.0"
+gem "rack-cors", "~> 3.0"
 
 gem "jwt", "~> 2.10"
 
